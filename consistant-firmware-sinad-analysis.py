@@ -104,7 +104,8 @@ if show_artifact_regions == "y":
 
 print(current_np.shape)
 
-period = 1 / 3000
+sample_rate = int(input("Samplerate in Samples per Second: "))
+period = 1 / sample_rate
 
 time = np.linspace(0, (len(current_np) - 1) * period, len(current_np))
 
@@ -122,16 +123,29 @@ ax1.set_xlabel("Time (s)")
 # ax1.set_xlim(0, len(current_np) / 8000)
 plt.show()
 
+do_bandpass = input("Do Bandpass Filter? [y/N] ")
+if do_bandpass == "y":
+    frequency = int(input("Frequency to filter: "))
+    sos = scipy.signal.butter(
+        5, [frequency - 10, frequency + 10], "bandpass", fs=sample_rate, output="sos"
+    )
+    filtered_data = scipy.signal.sosfilt(sos, current_np)
+    plt.plot(filtered_data)
+    plt.plot(current_np)
+    plt.show()
+
 # exit(0)
 
 wavelet = "cmor1.5-1.0"
 widths = np.geomspace(1, 4096, num=80)
 sampling_period = period
-cwtmatr, freqs = pywt.cwt(current_np, widths, wavelet, sampling_period=sampling_period)
+cwtmatr, freqs = pywt.cwt(
+    current_np[3_000_000:5_000_000], widths, wavelet, sampling_period=sampling_period
+)
 cwtmatr = np.abs(cwtmatr[:-1, :-1])
 
 fig, axs = plt.subplots(2, 1, sharex=True)
-pcm = axs[0].pcolormesh(time, freqs, cwtmatr, rasterized=True)
+pcm = axs[0].pcolormesh(time[3_000_000:5_000_000], freqs, cwtmatr, rasterized=True)
 axs[0].set_yscale("log")
 axs[0].set_xlabel("Time (s)")
 axs[0].set_ylabel("Frequency (Hz)")
