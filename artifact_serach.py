@@ -51,6 +51,8 @@ sos_0 = scipy.signal.butter(
     5, [frequency - 10, frequency + 10], "bandpass", fs=sample_rate, output="sos"
 )
 filtered_data = scipy.signal.sosfilt(sos_0, current_np)
+# plt.plot(filtered_data)
+# plt.show()
 sos_1 = scipy.signal.butter(
     5, [frequency - 1, frequency + 1], "bandstop", fs=sample_rate, output="sos"
 )
@@ -84,8 +86,12 @@ if artifact_peaks.shape[0] > 1:
 else:
     print("No Artifacts found!")
 
-freq_artifacts = filtered_data[filtered_data > 200]
-print(len(freq_artifacts))
+# freq_artifacts = filtered_data[filtered_data > 200]
+# print(len(freq_artifacts))
+
+plot_filtered_data = input("Plot filtered data? [y/N] ")
+if plot_filtered_data != "y":
+    exit(0)
 
 plt.plot(filtered_data)
 plt.show()

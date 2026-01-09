@@ -87,22 +87,6 @@ print(
 current_np = current_df.to_numpy()
 current_np = np.ravel(current_np)
 
-measurement_indices = raw_data.select("MeasurementIndex").to_numpy().ravel()
-index_diffs = measurement_indices[1:] - measurement_indices[0:-1]
-artifacts = index_diffs[index_diffs != 1]
-artifacts = artifacts[artifacts != 0 - 0xFFFF]
-artifact_idx = [
-    np.arange(0, len(index_diffs))[index_diffs == artifact] for artifact in artifacts
-]
-print("measurement artifacts:", artifacts, "\n", artifact_idx)
-show_artifact_regions = input("Show Artifact regions? [y/N] ")
-if show_artifact_regions == "y":
-    for artifact in artifact_idx:
-        artifact = artifact[0]
-        plt.plot(current_np[artifact - 10 : artifact + 10])
-        plt.show()
-
-print(current_np.shape)
 
 sample_rate = int(input("Samplerate in Samples per Second: "))
 period = 1 / sample_rate
@@ -139,9 +123,7 @@ if do_bandpass == "y":
 wavelet = "cmor1.5-1.0"
 widths = np.geomspace(1, 4096, num=80)
 sampling_period = period
-cwtmatr, freqs = pywt.cwt(
-    current_np[3_000_000:5_000_000], widths, wavelet, sampling_period=sampling_period
-)
+cwtmatr, freqs = pywt.cwt(current_np, widths, wavelet, sampling_period=sampling_period)
 cwtmatr = np.abs(cwtmatr[:-1, :-1])
 
 fig, axs = plt.subplots(2, 1, sharex=True)
