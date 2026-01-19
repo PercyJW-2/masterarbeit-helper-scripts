@@ -46,7 +46,7 @@ struct FirmwareMeasruement {
     #[allow(dead_code)]
     measurement_index: u16,
     /// Unit in amps
-    current: f32,
+    current: u16,
 }
 
 #[derive(Debug, Deserialize)]
@@ -89,6 +89,7 @@ fn calc_energy(
     let mut last_power_time_opt: Option<(f64, u128)> = None;
     let mut total_energy = 0.0;
     let mut last_pb_update = 0;
+    let mut start = true;
     for read_res in file_reader.records() {
         let str_record = read_res?;
         if last_pb_update == update_interval {
@@ -97,10 +98,28 @@ fn calc_energy(
         }
         let (power, time, energy) = entry_handler(last_power_time_opt, str_record)?;
         last_power_time_opt = Some((power, time));
+        if power <= 5.0 && start {
+            start = false;
+            continue;
+        }
         total_energy += energy;
         last_pb_update += 1;
     }
     Ok(total_energy)
+}
+
+fn estimate_voltage_from_current(current: f64) -> f64 {
+    const VOLTAGE_VALUES: [f64; 36] = [
+        18.96, 18.89, 18.85, 18.81, 18.77, 18.73, 18.7, 18.66, 18.63, 18.59, 18.56, 18.52, 18.49,
+        18.46, 18.42, 18.39, 18.35, 18.32, 18.29, 18.25, 18.22, 18.19, 18.16, 18.13, 18.1, 18.07,
+        18.04, 18.01, 17.97, 17.94, 17.91, 17.88, 17.84, 17.81, 17.79, 17.73,
+    ];
+    let range_index = ((current / 100.0).floor() as usize).min(33); // limiting to max
+    // current of 3.5 A
+    let range_percentage = 1.0 - ((current - range_index as f64) / 100.0);
+    let lower_voltage_val = VOLTAGE_VALUES[range_index];
+    let current_voltage_diff = (lower_voltage_val - VOLTAGE_VALUES[range_index + 1]).abs();
+    lower_voltage_val + current_voltage_diff * range_percentage
 }
 
 fn main() -> std::io::Result<()> {
@@ -198,7 +217,9 @@ fn main() -> std::io::Result<()> {
         1,
         |last_entry, str_record| {
             let firmware_measurement: FirmwareMeasruement = str_record.deserialize(None)?;
-            let current_power = firmware_measurement.current as f64 * 18.68; // temporary placeholder voltage
+            // apply calibration
+            let current_current = ((firmware_measurement.current as f64) * 0.9071) - 161.6;
+            let current_power = current_current * estimate_voltage_from_current(current_current);
             let current_energy;
             if let Some((last_power, _)) = last_entry {
                 let time_diff = 1.0 / 2000.0; // firmware has fixed samplerate
@@ -210,7 +231,9 @@ fn main() -> std::io::Result<()> {
         },
     )?;
 
-    println!("Firmware Energy (Assuming 18.68V): {firmware_energy:.2} Joule");
+    println!(
+        "Firmware Energy (Estimated voltage from calculated curve): {firmware_energy:.2} Joule"
+    );
 
     let osc_energy = calc_energy(pico_len, pico_reader, 100_000, |last_entry, str_record| {
         let pico_measurement: PicoMeasurement = str_record.deserialize(None)?;
