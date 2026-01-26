@@ -11,3 +11,5 @@ wheels/
 
 .ipynb_checkpoints
 .python-version
+
+*.csv

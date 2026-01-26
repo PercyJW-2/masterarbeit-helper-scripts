@@ -1,0 +1,3 @@
+[submodule "power_calculations/rev_lines"]
+	path = power_calculations/rev_lines
+	url = https://github.com/mjc-gh/rev_lines

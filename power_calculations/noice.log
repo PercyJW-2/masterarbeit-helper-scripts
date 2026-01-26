@@ -1,0 +1,600 @@
+{
+  event = "msg_showcmd",
+  kind = {}
+}
+{
+  event = "msg_showcmd",
+  kind = { { 0, "^M", 0 } }
+}
+{
+  event = "msg_showcmd",
+  kind = {}
+}
+{
+  event = "msg_showcmd",
+  kind = { { 0, "i", 0 } }
+}
+{
+  event = "msg_showcmd",
+  kind = {}
+}
+{
+  event = "msg_showcmd",
+  kind = { { 0, ":", 0 } }
+}
+{ 0, ":", "", 0, 1, 0,
+  event = "cmdline_show",
+  kind = { { 0, "" } }
+}
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function <.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:147>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function 'try'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:88: in function 'ui_attach_cb'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:27: in function 'process_queue'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:138: in function <.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:118>
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function 'update'
+	...l/share/nvim/lazy/noice.nvim/lua/noice/source/notify.lua:67: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:289: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:323: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:322>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:128: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:127>
+{ 1, ":", "", 0, 1, 0,
+  event = "cmdline_show",
+  kind = { { 0, "N" } }
+}
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function <.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:147>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function 'try'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:88: in function 'ui_attach_cb'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:27: in function 'process_queue'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:138: in function <.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:118>
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function 'update'
+	...l/share/nvim/lazy/noice.nvim/lua/noice/source/notify.lua:67: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:289: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:323: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:322>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:128: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:127>
+{ 2, ":", "", 0, 1, 0,
+  event = "cmdline_show",
+  kind = { { 0, "No" } }
+}
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function <.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:147>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function 'try'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:88: in function 'ui_attach_cb'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:27: in function 'process_queue'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:138: in function <.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:118>
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function 'update'
+	...l/share/nvim/lazy/noice.nvim/lua/noice/source/notify.lua:67: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:289: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:323: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:322>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:128: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:127>
+{ 3, ":", "", 0, 1, 0,
+  event = "cmdline_show",
+  kind = { { 0, "Noi" } }
+}
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function <.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:147>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function 'try'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:88: in function 'ui_attach_cb'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:27: in function 'process_queue'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:138: in function <.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:118>
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function 'update'
+	...l/share/nvim/lazy/noice.nvim/lua/noice/source/notify.lua:67: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:289: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:323: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:322>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:128: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:127>
+{ 4, ":", "", 0, 1, 0,
+  event = "cmdline_show",
+  kind = { { 0, "Noic" } }
+}
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function <.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:147>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function 'try'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:88: in function 'ui_attach_cb'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:27: in function 'process_queue'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:138: in function <.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:118>
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function 'update'
+	...l/share/nvim/lazy/noice.nvim/lua/noice/source/notify.lua:67: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:289: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:323: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:322>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:128: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:127>
+{ 5, ":", "", 0, 1, 0,
+  event = "cmdline_show",
+  kind = { { 0, "Noice" } }
+}
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function <.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:147>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function 'try'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:88: in function 'ui_attach_cb'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:27: in function 'process_queue'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:138: in function <.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:118>
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function <.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:147>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:146: in function ''
+	vim/_editor.lua: in function ''
+	vim/_editor.lua: in function <vim/_editor.lua:0>
+{ 6, ":", "", 0, 1, 0,
+  event = "cmdline_show",
+  kind = { { 0, "NoiceD" } }
+}
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function <.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:147>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function 'try'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:88: in function 'ui_attach_cb'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:27: in function 'process_queue'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:138: in function <.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:118>
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function 'update'
+	...l/share/nvim/lazy/noice.nvim/lua/noice/source/notify.lua:67: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:289: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:323: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:322>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:128: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:127>
+{ 7, ":", "", 0, 1, 0,
+  event = "cmdline_show",
+  kind = { { 0, "NoiceDe" } }
+}
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function <.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:147>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function 'try'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:88: in function 'ui_attach_cb'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:27: in function 'process_queue'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:138: in function <.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:118>
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function 'update'
+	...l/share/nvim/lazy/noice.nvim/lua/noice/source/notify.lua:67: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:289: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:323: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:322>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:128: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:127>
+{ 8, ":", "", 0, 1, 0,
+  event = "cmdline_show",
+  kind = { { 0, "NoiceDeb" } }
+}
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function <.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:147>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function 'try'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:88: in function 'ui_attach_cb'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:27: in function 'process_queue'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:138: in function <.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:118>
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function 'update'
+	...l/share/nvim/lazy/noice.nvim/lua/noice/source/notify.lua:67: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:289: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:323: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:322>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:128: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:127>
+{ 9, ":", "", 0, 1, 0,
+  event = "cmdline_show",
+  kind = { { 0, "NoiceDebu" } }
+}
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function <.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:147>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function 'try'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:88: in function 'ui_attach_cb'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:27: in function 'process_queue'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:138: in function <.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:118>
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function 'update'
+	...l/share/nvim/lazy/noice.nvim/lua/noice/source/notify.lua:67: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:289: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:323: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:322>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:128: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:127>
+{ 10, ":", "", 0, 1, 0,
+  event = "cmdline_show",
+  kind = { { 0, "NoiceDebug" } }
+}
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function <.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:147>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function 'try'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:88: in function 'ui_attach_cb'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:27: in function 'process_queue'
+	.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:138: in function <.../.local/share/nvim/lazy/noice.nvim/lua/noice/ui/init.lua:118>
+[cmdline_popup] '...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: Query error at 113:4. Invalid node type "tab":\n  "tab"\n   ^\n'
+stack traceback:
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:148: in function 'debug'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:167: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:166>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:64: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:56>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:144: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:143>
+	[C]: in function '_ts_parse_query'
+	...EMmJ/usr/share/nvim/runtime/lua/vim/treesitter/query.lua:373: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'fn'
+	...mAlEMmJ/usr/share/nvim/runtime/lua/vim/func/_memoize.lua:78: in function 'get_query'
+	...share/nvim/lazy/noice.nvim/lua/noice/text/treesitter.lua:7: in function 'get_query'
+	...
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:163: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:161>
+	[C]: in function 'xpcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:149: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:134>
+	...local/share/nvim/lazy/noice.nvim/lua/noice/view/init.lua:170: in function 'display'
+	.../share/nvim/lazy/noice.nvim/lua/noice/message/router.lua:214: in function 'update'
+	...l/share/nvim/lazy/noice.nvim/lua/noice/source/notify.lua:67: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:289: in function 'notify'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:323: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/init.lua:322>
+	[C]: in function 'pcall'
+	...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:128: in function <...local/share/nvim/lazy/noice.nvim/lua/noice/util/call.lua:127>
+{ false,
+  event = "cmdline_hide",
+  kind = 1
+}
