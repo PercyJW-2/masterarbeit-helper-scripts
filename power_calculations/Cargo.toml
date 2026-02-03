@@ -8,4 +8,6 @@ bpaf = { version = "0.9.20", features = ["bpaf_derive"] }
 csv = "1.4.0"
 indicatif = "0.18.3"
 serde = { version = "1.0.228", features = ["derive"] }
-rev_lines = { path = "./rev_lines" }
+npyz = { version = "0.8.4", features = ["npz"] }
+matplotlib = { path = "./rust-matplotlib", version = "0.2.0" }
+biquad = "0.5.0"
