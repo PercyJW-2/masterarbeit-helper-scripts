@@ -38,13 +38,11 @@ fn main() -> std::io::Result<()> {
         jetson_power,
         jetson_prefs.beginning_trigger_value,
         jetson_prefs.end_trigger_value,
-        1. / 500.,
+        1. / 2_000.,
         None,
         "Jetson",
     );
     let jetson_energy = calc_energy(&jetson_power, None);
-
-    println!("Jetson Energy: {jetson_energy:.2} Joule");
 
     let shelly_power = read_to_power_vector(shelly_len, shelly_reader, 1, |str_record| {
         let shelly_measurement: ShellyPlug = str_record.deserialize(None)?;
@@ -55,8 +53,6 @@ fn main() -> std::io::Result<()> {
         ))
     })?;
     let shelly_energy = calc_energy(&shelly_power, None);
-
-    println!("Shelly Energy (Calculated with Current and Voltage): {shelly_energy:.2} Joule");
 
     let mut shelly_power_2 =
         read_to_power_vector(shelly_len_2, shelly_reader_2, 1, |str_record| {
@@ -73,15 +69,11 @@ fn main() -> std::io::Result<()> {
         shelly_power_2,
         shelly_prefs.beginning_trigger_value,
         shelly_prefs.end_trigger_value,
-        1.0,
+        1. / 2_000.,
         None,
         "Shelly",
     );
     let shelly_energy_2 = calc_energy(&shelly_power_2, None);
-
-    println!(
-        "Shelly Energy (Calculated with internal Power calculation): {shelly_energy_2:.2} Joule"
-    );
 
     let mut osc_power = read_to_power_vector(pico_len, pico_reader, 100_000, |str_record| {
         let pico_measurement: PicoMeasurement = str_record.deserialize(None)?;
@@ -105,70 +97,8 @@ fn main() -> std::io::Result<()> {
         Some(osc_prefs.samplerate),
         "Picoscope",
     );
-    /*osc_power = if let Some(threshold) = osc_prefs.beginning_trigger_value {
-        cut_start(
-            osc_power,
-            threshold,
-            osc_prefs.frame_size,
-            Some(osc_samplerate),
-            false,
-        )
-    } else {
-        println!("Starting calibration assistant (Oscilloscope Beginning)");
-        let power = cut_start(
-            osc_power,
-            0.0,
-            osc_prefs.frame_size,
-            Some(osc_samplerate),
-            true,
-        );
-        print!("Provide threshold: ");
-        io::stdout().flush().expect("Could not flush stdout");
-        let mut buffer = String::new();
-        io::stdin().read_line(&mut buffer)?;
-        let threshold: f64 = buffer.trim().parse().expect("Could not parse float");
-        cut_start(
-            power,
-            threshold,
-            osc_prefs.frame_size,
-            Some(osc_samplerate),
-            true,
-        )
-    };
-    osc_power = if let Some(threshold) = osc_prefs.end_trigger_value {
-        cut_end(
-            osc_power,
-            threshold,
-            osc_prefs.frame_size,
-            Some(osc_samplerate),
-            false,
-        )
-    } else {
-        println!("Starting calibration assistant (Oscilloscope Ending)");
-        let power = cut_end(
-            osc_power,
-            0.0,
-            osc_prefs.frame_size,
-            Some(osc_samplerate),
-            true,
-        );
-        print!("Provide threshold: ");
-        io::stdout().flush().expect("Sould not flush stdout");
-        let mut buffer = String::new();
-        io::stdin().read_line(&mut buffer)?;
-        let threshold: f64 = buffer.trim().parse().expect("Could not parse float");
-        cut_end(
-            power,
-            threshold,
-            osc_prefs.frame_size,
-            Some(osc_samplerate),
-            true,
-        )
-    };*/
     save_vec_to_npy(&osc_power, "oscilloscope.npy")?;
     let osc_energy = calc_energy(&osc_power, Some(osc_samplerate));
-
-    println!("Osc Energy: {osc_energy:.2} Joule");
 
     let mut firmware_power =
         read_to_power_vector(firmware_len, firmware_reader, 1, |str_record| {
@@ -196,67 +126,6 @@ fn main() -> std::io::Result<()> {
         "Firmware",
     );
 
-    /*firmware_power = if let Some(threshold) = firmware_prefs.beginning_trigger_value {
-        cut_start(
-            firmware_power,
-            threshold,
-            firmware_prefs.frame_size,
-            Some(2000.),
-            false,
-        )
-    } else {
-        println!("Starting calibration assistant (Firmware Beginning)");
-        let power = cut_start(
-            firmware_power,
-            0.0,
-            firmware_prefs.frame_size,
-            Some(2000.),
-            true,
-        );
-        print!("Provide threshold: ");
-        io::stdout().flush().expect("Could not flush stdout");
-        let mut buffer = String::new();
-        io::stdin().read_line(&mut buffer)?;
-        let threshold: f64 = buffer.trim().parse().expect("Could not parse float");
-        cut_start(
-            power,
-            threshold,
-            firmware_prefs.frame_size,
-            Some(2000.),
-            true,
-        )
-    };
-    firmware_power = if let Some(threshold) = firmware_prefs.end_trigger_value {
-        cut_end(
-            firmware_power,
-            threshold,
-            firmware_prefs.frame_size,
-            Some(2000.),
-            false,
-        )
-    } else {
-        println!("Starting calibration assistant (Firmware Ending)");
-        let power = cut_end(
-            firmware_power,
-            0.0,
-            firmware_prefs.frame_size,
-            Some(2000.),
-            true,
-        );
-        print!("Provide threshold: ");
-        io::stdout().flush().expect("Could not flush stdout");
-        let mut buffer = String::new();
-        io::stdin().read_line(&mut buffer)?;
-        let threshold: f64 = buffer.trim().parse().expect("Could not parse float");
-        cut_end(
-            power,
-            threshold,
-            firmware_prefs.frame_size,
-            Some(2000.),
-            true,
-        )
-    };*/
-
     let actual_firmware_samplerate = {
         let diff_percentage = firmware_power.len() as f64 / osc_power.len() as f64;
         osc_samplerate * diff_percentage
@@ -267,7 +136,13 @@ fn main() -> std::io::Result<()> {
 
     let firmware_energy = calc_energy(&firmware_power, Some(actual_firmware_samplerate)); // placeholder
     println!(
-        "Firmware Energy (Estimated voltage from calculated curve): {firmware_energy:.2} Joule"
+        "
+        Firmware Energy (Estimated voltage from calculated curve): {firmware_energy:.2} Joule
+        Oscilloscope Energy:                                       {osc_energy:.2} Joule
+        Jetson Energy:                                             {jetson_energy:.2} Joule
+        Shelly Calc Energy:                                        {shelly_energy:.2} Joule
+        Shelly Energy:                                             {shelly_energy_2:.2} Joule
+        "
     );
 
     Ok(())

@@ -68,7 +68,7 @@ fn cut_calculation<'a>(
                     continue;
                 }
                 power_avg += power;
-                current_time += t_stamp - last_timestamp;
+                current_time += (t_stamp - last_timestamp).abs();
             }
         }
         current_sample_count += 1.;
