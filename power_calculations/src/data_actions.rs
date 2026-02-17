@@ -214,6 +214,7 @@ pub(crate) fn cut_data_start_and_end(
         samplerate_opt,
         Side::End,
     );
+    //cut_calculation(data.iter(), 0.0, msmt_frame_duration, samplerate_opt, true);
     data
 }
 
@@ -251,9 +252,10 @@ pub(crate) fn calc_energy(data: &VecDeque<PowerSample>, samplerate_opt: Option<f
 
 pub(crate) fn estimate_voltage_from_current(current: f64) -> f64 {
     const VOLTAGE_VALUES: [f64; 36] = [
-        18.96, 18.89, 18.85, 18.81, 18.77, 18.73, 18.7, 18.66, 18.63, 18.59, 18.56, 18.52, 18.49,
-        18.46, 18.42, 18.39, 18.35, 18.32, 18.29, 18.25, 18.22, 18.19, 18.16, 18.13, 18.1, 18.07,
-        18.04, 18.01, 17.97, 17.94, 17.91, 17.88, 17.84, 17.81, 17.79, 17.73,
+        18.9060, 18.8433, 18.8036, 18.7648, 18.7275, 18.6921, 18.6550, 18.6207, 18.5848, 18.5501,
+        18.5169, 18.4835, 18.4498, 18.4162, 18.3825, 18.3494, 18.3166, 18.2837, 18.2672, 18.2335,
+        18.2006, 18.1690, 18.1356, 18.1021, 18.0692, 18.0360, 18.0048, 17.9707, 17.9370, 17.9056,
+        17.8714, 17.8374, 17.8041, 17.7691, 17.7327, 17.6952,
     ];
     let range_index = ((current / 100.0).floor() as usize).min(34); // limiting to max
     // current of 3.5 A

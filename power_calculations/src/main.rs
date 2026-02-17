@@ -58,8 +58,8 @@ fn main() -> std::io::Result<()> {
         read_to_power_vector(shelly_len_2, shelly_reader_2, 1, |str_record| {
             let shelly_measurement: ShellyPlug = str_record.deserialize(None)?;
             // apply calibration
-            let power = -0.001090707 * shelly_measurement.power.powf(2.)
-                + 0.903935016 * shelly_measurement.power;
+            let mut power = shelly_measurement.power - 5.788068182;
+            power = -0.001090707 * power.powf(2.) + 0.903935016 * power;
             Ok(PowerSample::Variable(
                 shelly_measurement.measurement_timestamp as f64 / 1_000_000.,
                 power,
@@ -137,8 +137,8 @@ fn main() -> std::io::Result<()> {
     let firmware_energy = calc_energy(&firmware_power, Some(actual_firmware_samplerate)); // placeholder
     println!(
         "
-        Firmware Energy (Estimated voltage from calculated curve): {firmware_energy:.2} Joule
         Oscilloscope Energy:                                       {osc_energy:.2} Joule
+        Firmware Energy (Estimated voltage from calculated curve): {firmware_energy:.2} Joule
         Jetson Energy:                                             {jetson_energy:.2} Joule
         Shelly Calc Energy:                                        {shelly_energy:.2} Joule
         Shelly Energy:                                             {shelly_energy_2:.2} Joule
