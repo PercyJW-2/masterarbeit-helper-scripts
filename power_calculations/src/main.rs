@@ -42,6 +42,7 @@ fn main() -> std::io::Result<()> {
         None,
         "Jetson",
     );
+    save_vec_to_npy(&jetson_power, "jetson.npy")?;
     let jetson_energy = calc_energy(&jetson_power, None);
 
     let shelly_power = read_to_power_vector(shelly_len, shelly_reader, 1, |str_record| {
@@ -65,6 +66,7 @@ fn main() -> std::io::Result<()> {
                 power,
             ))
         })?;
+    let shelly_initial_sample_count = shelly_power_2.len();
     shelly_power_2 = cut_data_start_and_end(
         shelly_power_2,
         shelly_prefs.beginning_trigger_value,
@@ -73,7 +75,19 @@ fn main() -> std::io::Result<()> {
         None,
         "Shelly",
     );
+    save_vec_to_npy(&shelly_power_2, "shelly.npy")?;
     let shelly_energy_2 = calc_energy(&shelly_power_2, None);
+
+    let mut shelly_internal_energy_path = args.measurement_location.clone();
+    shelly_internal_energy_path.push("shellyFinalPower.txt");
+    let mut shelly_internal_energy: f64 = std::fs::read_to_string(shelly_internal_energy_path)
+        .expect("Could not read file")
+        .trim()
+        .parse()
+        .expect("Could not parse float");
+    shelly_internal_energy *= 3600.;
+    shelly_internal_energy *= 0.836383929;
+    shelly_internal_energy += shelly_initial_sample_count as f64 * (-5.788068182);
 
     let mut osc_power = read_to_power_vector(pico_len, pico_reader, 100_000, |str_record| {
         let pico_measurement: PicoMeasurement = str_record.deserialize(None)?;
@@ -142,8 +156,22 @@ fn main() -> std::io::Result<()> {
         Jetson Energy:                                             {jetson_energy:.2} Joule
         Shelly Calc Energy:                                        {shelly_energy:.2} Joule
         Shelly Energy:                                             {shelly_energy_2:.2} Joule
+        Shelly Internal Energy (Unable to cut):                    {shelly_internal_energy:.2} Joule
         "
     );
+
+    if args.plot {
+        std::process::Command::new("python")
+            .args([
+                "./../plot_energy_diffs.py",
+                actual_firmware_samplerate.to_string().as_str(),
+                osc_prefs.samplerate.to_string().as_str(),
+            ])
+            .spawn()
+            .expect("could not start plotting")
+            .wait()
+            .expect("got an execution error during plotting");
+    }
 
     Ok(())
 }

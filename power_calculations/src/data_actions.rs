@@ -1,24 +1,22 @@
-use crate::data_reading_types::PowerSample;
+use crate::data_reading_types::{PowerSample, PowerVec};
 use biquad::{Biquad, Coefficients, DirectForm1, Q_BUTTERWORTH_F64, ToHertz};
 use matplotlib as plt;
 use npyz::WriterBuilder;
 use std::{
-    collections::VecDeque,
     fs::File,
     io::{BufWriter, Result, Write, stdin, stdout},
 };
 
 pub(crate) fn filter_data(
-    mut data: VecDeque<PowerSample>,
+    mut data: PowerVec,
     samplerate: f64,
     cutoff_freq: Option<f64>,
-) -> VecDeque<PowerSample> {
-    let data_unwrapped = data.iter_mut().map(|sample| {
-        match sample {
-            PowerSample::Constant(unwrapped_sample) => unwrapped_sample,
-            PowerSample::Variable(_, _) => unreachable!(), // data spacing needs to be constant
-        }
-    });
+) -> PowerVec {
+    let data_unwrapped_vec = match &mut data {
+        PowerVec::Constant(unwrapped_sample) => unwrapped_sample,
+        PowerVec::Variable(_) => unreachable!(), // data spacing needs to be constant
+    };
+    let data_unwrapped = data_unwrapped_vec.iter_mut();
     let coeffs = Coefficients::<f64>::from_params(
         biquad::Type::LowPass,
         samplerate.hz(),
@@ -36,8 +34,8 @@ pub(crate) fn filter_data(
     data
 }
 
-fn cut_calculation<'a>(
-    mut data: impl Iterator<Item = &'a PowerSample>,
+fn cut_calculation(
+    mut data: impl Iterator<Item = PowerSample>,
     threshold: f64,
     msmt_frame_duration: f64,
     samplerate_opt: Option<f64>,
@@ -64,7 +62,7 @@ fn cut_calculation<'a>(
             }
             PowerSample::Variable(t_stamp, power) => {
                 if last_timestamp == 0. {
-                    last_timestamp = *t_stamp;
+                    last_timestamp = t_stamp;
                     continue;
                 }
                 power_avg += power;
@@ -101,12 +99,12 @@ fn cut_calculation<'a>(
 }
 
 fn cut_start(
-    mut data: VecDeque<PowerSample>,
+    mut data: PowerVec,
     threshold: f64,
     msmt_frame_duration: f64,
     samplerate_opt: Option<f64>,
     plot: bool,
-) -> VecDeque<PowerSample> {
+) -> PowerVec {
     let cut_count = cut_calculation(
         data.iter(),
         threshold,
@@ -121,12 +119,12 @@ fn cut_start(
 }
 
 fn cut_end(
-    mut data: VecDeque<PowerSample>,
+    mut data: PowerVec,
     threshold: f64,
     msmt_frame_duration: f64,
     samplerate_opt: Option<f64>,
     plot: bool,
-) -> VecDeque<PowerSample> {
+) -> PowerVec {
     let cut_count = cut_calculation(
         data.iter().rev(),
         threshold,
@@ -155,12 +153,12 @@ impl Side {
 
     fn cut_on_side(
         &self,
-        data: VecDeque<PowerSample>,
+        data: PowerVec,
         threshold: f64,
         msmt_frame_duration: f64,
         samplerate_opt: Option<f64>,
         plot: bool,
-    ) -> VecDeque<PowerSample> {
+    ) -> PowerVec {
         match self {
             Self::Start => cut_start(data, threshold, msmt_frame_duration, samplerate_opt, plot),
             Self::End => cut_end(data, threshold, msmt_frame_duration, samplerate_opt, plot),
@@ -169,12 +167,12 @@ impl Side {
 }
 
 fn data_cut_calibration(
-    data: VecDeque<PowerSample>,
+    data: PowerVec,
     threshold_opt: Option<f64>,
     msmt_frame_duration: f64,
     samplerate_opt: Option<f64>,
     side: Side,
-) -> VecDeque<PowerSample> {
+) -> PowerVec {
     println!("Cutting on {}", side.to_str());
     if let Some(threshold) = threshold_opt {
         side.cut_on_side(data, threshold, msmt_frame_duration, samplerate_opt, false)
@@ -192,33 +190,31 @@ fn data_cut_calibration(
 }
 
 pub(crate) fn cut_data_start_and_end(
-    mut data: VecDeque<PowerSample>,
+    data: PowerVec,
     threshold_start: Option<f64>,
     threshold_end: Option<f64>,
     msmt_frame_duration: f64,
     samplerate_opt: Option<f64>,
     data_name: &'static str,
-) -> VecDeque<PowerSample> {
+) -> PowerVec {
     println!("Starting data cutting of {data_name}");
-    data = data_cut_calibration(
+    let data_cut_start = data_cut_calibration(
         data,
         threshold_start,
         msmt_frame_duration,
         samplerate_opt,
         Side::Start,
     );
-    data = data_cut_calibration(
-        data,
+    data_cut_calibration(
+        data_cut_start,
         threshold_end,
         msmt_frame_duration,
         samplerate_opt,
         Side::End,
-    );
-    //cut_calculation(data.iter(), 0.0, msmt_frame_duration, samplerate_opt, true);
-    data
+    )
 }
 
-pub(crate) fn calc_energy(data: &VecDeque<PowerSample>, samplerate_opt: Option<f64>) -> f64 {
+pub(crate) fn calc_energy(data: &PowerVec, samplerate_opt: Option<f64>) -> f64 {
     let mut data_iter = data.iter();
     let first_elem = data_iter.next().unwrap();
     let samplerate = samplerate_opt.unwrap_or(0.0);
@@ -265,19 +261,27 @@ pub(crate) fn estimate_voltage_from_current(current: f64) -> f64 {
     lower_voltage_val + current_voltage_diff * range_percentage
 }
 
-pub(crate) fn save_vec_to_npy(data: &VecDeque<PowerSample>, filename: &'static str) -> Result<()> {
+pub(crate) fn save_vec_to_npy(data: &PowerVec, filename: &'static str) -> Result<()> {
     let buf_wtr = BufWriter::new(File::create(filename)?);
-    let mut npy_wtr = npyz::WriteOptions::new()
-        .default_dtype()
-        .shape(&[data.len() as u64])
-        .writer(buf_wtr)
-        .begin_nd()?;
-    npy_wtr.extend(data.iter().map(|elem| {
-        if let PowerSample::Constant(num) = elem {
-            *num
-        } else {
-            unreachable!();
+    match data {
+        PowerVec::Constant(constant_data) => {
+            let mut npy_wtr = npyz::WriteOptions::new()
+                .default_dtype()
+                .shape(&[constant_data.len() as u64])
+                .writer(buf_wtr)
+                .begin_nd()?;
+            npy_wtr.extend(constant_data.iter().copied())?;
+            npy_wtr.finish()?;
         }
-    }))?;
-    npy_wtr.finish()
+        PowerVec::Variable(variable_data) => {
+            let mut npy_wtr = npyz::WriteOptions::new()
+                .default_dtype()
+                .shape(&[variable_data.len() as u64, 2])
+                .writer(buf_wtr)
+                .begin_nd()?;
+            npy_wtr.extend(variable_data.iter().flat_map(|(tstmp, pow)| [*tstmp, *pow]))?;
+            npy_wtr.finish()?;
+        }
+    }
+    Ok(())
 }

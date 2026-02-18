@@ -85,6 +85,9 @@ pub(crate) struct Args {
     /// Measurement location
     #[bpaf(short, long)]
     pub(crate) measurement_location: PathBuf,
+    /// plot final power
+    #[bpaf(short, long)]
+    pub(crate) plot: bool,
     /// Settings for firmware measurements
     #[bpaf(external)]
     pub(crate) firmware_enum: FirmwareEnum,

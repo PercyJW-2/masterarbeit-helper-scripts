@@ -37,12 +37,13 @@ pub(crate) fn read_to_power_vector(
     mut file_reader: Reader<File>,
     update_interval: u32,
     entry_handler: impl Fn(StringRecord) -> std::io::Result<PowerSample>,
-) -> std::io::Result<VecDeque<PowerSample>> {
+) -> std::io::Result<PowerVec> {
     let pb_style = get_pb_style();
     let pb = ProgressBar::new(file_len);
     pb.set_style(pb_style);
 
-    let mut values = VecDeque::new();
+    let mut values_const = VecDeque::new();
+    let mut values_varia = VecDeque::new();
 
     let mut last_pb_update = 0;
 
@@ -56,8 +57,16 @@ pub(crate) fn read_to_power_vector(
             last_pb_update += 1;
         }
 
-        values.push_back(entry_handler(str_record)?);
+        let entry = entry_handler(str_record)?;
+        match entry {
+            PowerSample::Constant(value) => values_const.push_back(value),
+            PowerSample::Variable(tstmp, value) => values_varia.push_back((tstmp, value)),
+        }
     }
 
-    Ok(values)
+    if values_varia.is_empty() {
+        Ok(PowerVec::Constant(values_const))
+    } else {
+        Ok(PowerVec::Variable(values_varia))
+    }
 }
