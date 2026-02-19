@@ -35,14 +35,15 @@ pub(crate) fn filter_data(
 }
 
 fn cut_calculation(
-    mut data: impl Iterator<Item = PowerSample>,
+    data_iter: impl Iterator<Item = PowerSample>,
     threshold: f64,
     msmt_frame_duration: f64,
     samplerate_opt: Option<f64>,
     plot: bool,
 ) -> u32 {
+    let mut data = data_iter.peekable();
     let samplerate = samplerate_opt.unwrap_or(0.0);
-    if let Some(PowerSample::Constant(_)) = data.next()
+    if let Some(PowerSample::Constant(_)) = data.peek()
         && samplerate == 0.0
     {
         unreachable!()
@@ -61,12 +62,13 @@ fn cut_calculation(
                 current_time += 1. / samplerate;
             }
             PowerSample::Variable(t_stamp, power) => {
-                if last_timestamp == 0. {
+                /*if last_timestamp == 0. {
                     last_timestamp = t_stamp;
                     continue;
-                }
+                }*/
                 power_avg += power;
                 current_time += (t_stamp - last_timestamp).abs();
+                last_timestamp = t_stamp;
             }
         }
         current_sample_count += 1.;
