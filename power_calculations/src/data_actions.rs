@@ -248,8 +248,11 @@ pub(crate) fn calc_energy(data: &PowerVec, samplerate_opt: Option<f64>) -> f64 {
     energy
 }
 
+/// current -> unit is in mA
 pub(crate) fn estimate_voltage_from_current(current: f64) -> f64 {
-    const VOLTAGE_VALUES: [f64; 36] = [
+    let curve_pos = current / 3500.;
+    curve_pos * (-0.000664786) + 19.030027
+    /*const VOLTAGE_VALUES: [f64; 36] = [
         18.9060, 18.8433, 18.8036, 18.7648, 18.7275, 18.6921, 18.6550, 18.6207, 18.5848, 18.5501,
         18.5169, 18.4835, 18.4498, 18.4162, 18.3825, 18.3494, 18.3166, 18.2837, 18.2672, 18.2335,
         18.2006, 18.1690, 18.1356, 18.1021, 18.0692, 18.0360, 18.0048, 17.9707, 17.9370, 17.9056,
@@ -260,7 +263,7 @@ pub(crate) fn estimate_voltage_from_current(current: f64) -> f64 {
     let range_percentage = 1.0 - ((current - range_index as f64) / 100.0);
     let lower_voltage_val = VOLTAGE_VALUES[range_index];
     let current_voltage_diff = (lower_voltage_val - VOLTAGE_VALUES[range_index + 1]).abs();
-    lower_voltage_val + current_voltage_diff * range_percentage
+    lower_voltage_val + current_voltage_diff * range_percentage*/
 }
 
 pub(crate) fn save_vec_to_npy(data: &PowerVec, filename: &'static str) -> Result<()> {

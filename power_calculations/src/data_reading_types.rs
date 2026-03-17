@@ -39,10 +39,6 @@ pub(crate) struct FirmwareMeasruement {
 #[serde(rename_all = "PascalCase")]
 #[allow(dead_code)]
 pub(crate) struct PicoMeasurement {
-    /// Unit in microseconds
-    pub(crate) measurement_timestamp: u128,
-    /// Sample Number in current data package
-    pub(crate) sample_index: u32,
     /// Unit in volts
     pub(crate) voltage: f64,
     /// Unit in amps

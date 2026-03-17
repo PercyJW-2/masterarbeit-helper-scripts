@@ -10,12 +10,6 @@ def calc_avg_power(directory: str) -> tuple[float, float, float, float, float, f
         .select("Current")
         .mean()
     ).collect()["Current"][0]
-    # first calibration
-    fast_firmware_current *= 0.907104233
-    fast_firmware_current += 161.623038
-    # second calibration
-    fast_firmware_current *= 0.99245570488
-    fast_firmware_current -= 395.348969462
     print("Fast Firmware Current:", fast_firmware_current)
     shelly_plug_current = (
         pl.scan_csv(directory + "/shellyPlug.csv").select("Current").mean()
@@ -52,7 +46,7 @@ def calc_avg_power(directory: str) -> tuple[float, float, float, float, float, f
 
 
 folder = os.scandir(
-    "/media/jwachsmuth/6e97041d-abf4-4100-8bef-9111a0c14742/power_measurements/static_analysis/"
+    "/mnt/6e97041d-abf4-4100-8bef-9111a0c14742/power_measurements/static_analysis/"
 )
 
 values = {}

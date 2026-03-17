@@ -13,10 +13,12 @@ shelly_power = np.load("./shelly.npy")
 osc_idx = np.arange(start=0, stop=osc_power.shape[0]) * (1 / osc_samplerate)
 firm_idx = np.arange(start=0, stop=firm_power.shape[0]) * (1 / firm_samplerate)
 
+print("Duration: ", osc_idx[-1])
+
 jetson_power[:, 0] -= jetson_power[0, 0]
 shelly_power[:, 0] -= shelly_power[0, 0]
 
-plt.plot(osc_idx, osc_power, label="Osc")
+plt.plot(osc_idx[::300], osc_power[::300], label="Osc")
 plt.plot(firm_idx, firm_power, label="Firmware")
 plt.plot(*jetson_power.T, label="Jetson")
 plt.plot(*shelly_power.T, label="Shelly")

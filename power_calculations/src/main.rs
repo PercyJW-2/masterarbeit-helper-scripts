@@ -21,8 +21,6 @@ fn main() -> std::io::Result<()> {
     {
         let (jetson_len, jetson_reader) =
             init_reader("jetson.csv", args.measurement_location.clone())?;
-        let (shelly_len, shelly_reader) =
-            init_reader("shellyPlug.csv", args.measurement_location.clone())?;
         let (shelly_len_2, shelly_reader_2) =
             init_reader("shellyPlug.csv", args.measurement_location.clone())?;
         let (firmware_len, firmware_reader) =
@@ -50,28 +48,17 @@ fn main() -> std::io::Result<()> {
         save_vec_to_npy(&jetson_power, "jetson.npy")?;
         let jetson_energy = calc_energy(&jetson_power, None);
 
-        let shelly_power = read_to_power_vector(shelly_len, shelly_reader, 1, |str_record| {
-            let shelly_measurement: ShellyPlug = str_record.deserialize(None)?;
-            let current_power = shelly_measurement.voltage * shelly_measurement.current;
-            Ok(PowerSample::Variable(
-                shelly_measurement.measurement_timestamp as f64 / 1_000_000.,
-                current_power,
-            ))
-        })?;
-        let shelly_energy = calc_energy(&shelly_power, None);
-
         let mut shelly_power_2 =
             read_to_power_vector(shelly_len_2, shelly_reader_2, 1, |str_record| {
                 let shelly_measurement: ShellyPlug = str_record.deserialize(None)?;
                 // apply calibration
-                let mut power = shelly_measurement.power - 5.788068182;
-                power = -0.001090707 * power.powf(2.) + 0.903935016 * power;
+                let mut power = shelly_measurement.power - 40.40749136;
+                power *= 0.796818078;
                 Ok(PowerSample::Variable(
                     shelly_measurement.measurement_timestamp as f64 / 1_000_000.,
                     power,
                 ))
             })?;
-        let shelly_initial_sample_count = shelly_power_2.len();
         shelly_power_2 = cut_data_start_and_end(
             shelly_power_2,
             shelly_prefs.beginning_trigger_value,
@@ -83,20 +70,9 @@ fn main() -> std::io::Result<()> {
         save_vec_to_npy(&shelly_power_2, "shelly.npy")?;
         let shelly_energy_2 = calc_energy(&shelly_power_2, None);
 
-        let mut shelly_internal_energy_path = args.measurement_location.clone();
-        shelly_internal_energy_path.push("shellyFinalPower.txt");
-        let mut shelly_internal_energy: f64 = std::fs::read_to_string(shelly_internal_energy_path)
-            .expect("Could not read file")
-            .trim()
-            .parse()
-            .expect("Could not parse float");
-        shelly_internal_energy *= 3600.;
-        shelly_internal_energy *= 0.836383929;
-        shelly_internal_energy += shelly_initial_sample_count as f64 * (-5.788068182);
-
         let mut osc_power = read_to_power_vector(pico_len, pico_reader, 100_000, |str_record| {
             let pico_measurement: PicoMeasurement = str_record.deserialize(None)?;
-            let current = pico_measurement.current * 0.88607;
+            let current = (pico_measurement.current + 0.003326916) * 0.998687605682019;
             let voltage = if osc_prefs.use_voltage {
                 pico_measurement.voltage
             } else {
@@ -123,15 +99,10 @@ fn main() -> std::io::Result<()> {
             read_to_power_vector(firmware_len, firmware_reader, 1, |str_record| {
                 let firmware_measurement: FirmwareMeasruement = str_record.deserialize(None)?;
                 // apply calibration
-                let mut current_current =
-                    ((firmware_measurement.current as f64) * 0.90710233) + 161.6623038;
-                // apply second calibration
-                current_current *= 0.99245570488;
-                current_current -= 395.348969462;
-                // apply third calibration (test)
-                //current_current *= 1.03;
+                let current_current = ((firmware_measurement.current as f64 / 1000.) + 0.004704622)
+                    * 0.997224237630222;
                 let current_power =
-                    (current_current / 1000.) * estimate_voltage_from_current(current_current);
+                    current_current * estimate_voltage_from_current(current_current * 1000.);
                 Ok(PowerSample::Constant(current_power))
             })?;
 
@@ -159,9 +130,7 @@ fn main() -> std::io::Result<()> {
         Oscilloscope Energy:                                       {osc_energy:.2} Joule
         Firmware Energy (Estimated voltage from calculated curve): {firmware_energy:.2} Joule
         Jetson Energy:                                             {jetson_energy:.2} Joule
-        Shelly Calc Energy:                                        {shelly_energy:.2} Joule
         Shelly Energy:                                             {shelly_energy_2:.2} Joule
-        Shelly Internal Energy (Unable to cut):                    {shelly_internal_energy:.2} Joule
         "
         );
     }
