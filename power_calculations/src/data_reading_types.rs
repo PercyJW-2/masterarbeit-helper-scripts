@@ -1,4 +1,7 @@
-use std::collections::{VecDeque, vec_deque::Iter};
+use std::{
+    collections::{VecDeque, vec_deque::Iter},
+    iter::Peekable,
+};
 
 use serde::Deserialize;
 
@@ -15,6 +18,7 @@ pub(crate) struct JetsonMeasurement {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
+#[allow(dead_code)]
 pub(crate) struct ShellyPlug {
     /// Unit in microseconds
     pub(crate) measurement_timestamp: u128,
@@ -82,6 +86,14 @@ impl PowerVec {
     pub(crate) fn iter<'a>(&'a self) -> PowerIter<'a> {
         PowerIter::new(self)
     }
+
+    pub(crate) fn power_window_iter<'a>(
+        &'a self,
+        frame_size: f64,
+        samplerate_opt: Option<f64>,
+    ) -> WindowEnergyIter<'a> {
+        WindowEnergyIter::new(self.iter(), frame_size, samplerate_opt)
+    }
 }
 
 pub(crate) struct PowerIter<'a> {
@@ -142,4 +154,117 @@ impl<'a> DoubleEndedIterator for PowerIter<'a> {
 pub(crate) enum PowerSample {
     Constant(Power),
     Variable(Timestamp, Power),
+}
+
+pub(crate) struct WindowEnergyIter<'a> {
+    data: Peekable<PowerIter<'a>>,
+    frame_size: f64,
+    samplerate: f64,
+    overshoot: f64,
+}
+
+impl<'a> WindowEnergyIter<'a> {
+    pub(crate) fn new(data: PowerIter<'a>, frame_size: f64, samplerate_opt: Option<f64>) -> Self {
+        let mut data_iter = data.peekable();
+        if let Some(PowerSample::Constant(_)) = data_iter.peek()
+            && let None = samplerate_opt
+        {
+            unreachable!();
+        }
+        Self {
+            data: data_iter,
+            frame_size,
+            samplerate: samplerate_opt.unwrap_or(0.0),
+            overshoot: 0.0,
+        }
+    }
+
+    pub(crate) fn max_and_min(self) -> (f64, f64) {
+        let mut current_max = 0.;
+        let mut current_min = f64::MAX;
+
+        for frame_power in self {
+            if frame_power > current_max {
+                current_max = frame_power;
+            }
+            if frame_power < current_min {
+                current_min = frame_power;
+            }
+        }
+
+        (current_max, current_min)
+    }
+
+    fn calc_frame(&mut self, reverse: bool) -> Option<f64> {
+        let mut frame_pos = 0.0;
+        let mut last_power;
+        let mut last_time = 0.0;
+
+        let fst_smple_opt = if reverse {
+            self.data.next_back()
+        } else {
+            self.data.next()
+        };
+        if let Some(fst_sample) = fst_smple_opt {
+            match fst_sample {
+                PowerSample::Constant(power) => {
+                    last_power = power;
+                }
+                PowerSample::Variable(time, power) => {
+                    last_time = time;
+                    last_power = power;
+                }
+            }
+        } else {
+            return None;
+        }
+
+        let mut energy = self.overshoot;
+
+        while frame_pos < self.frame_size {
+            let next_sample_opt = if reverse {
+                self.data.next_back()
+            } else {
+                self.data.next()
+            };
+            if let Some(next_sample) = next_sample_opt {
+                let (current_power, time_diff) = match next_sample {
+                    PowerSample::Constant(power) => (power, 1. / self.samplerate),
+                    PowerSample::Variable(time, power) => {
+                        let diff = time - last_time;
+                        last_time = time;
+                        (power, diff)
+                    }
+                };
+                let current_energy = ((current_power + last_power) / 2.) * time_diff;
+                last_power = current_power;
+                if frame_pos + time_diff < self.frame_size {
+                    energy += current_energy;
+                } else {
+                    let time_over_frame = (frame_pos + time_diff) - self.frame_size;
+                    self.overshoot = current_energy * (time_over_frame / time_diff);
+                    energy += energy - self.overshoot;
+                }
+                frame_pos += time_diff;
+            } else {
+                return Some(energy);
+            }
+        }
+
+        Some(energy)
+    }
+}
+
+impl<'a> Iterator for WindowEnergyIter<'a> {
+    type Item = f64;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.calc_frame(false)
+    }
+}
+
+impl<'a> DoubleEndedIterator for WindowEnergyIter<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.calc_frame(true)
+    }
 }

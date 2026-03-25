@@ -1,15 +1,21 @@
 import os
 
 import polars as pl
-from polars.io.scan_options.cast_options import _DEFAULT_CAST_OPTIONS_ICEBERG
+import scipy.signal as signal
+import numpy as np
 
 
 def calc_avg_power(directory: str) -> tuple[float, float, float, float, float, float]:
-    fast_firmware_current = (
-        pl.scan_csv(directory + "/fast_firmware.csv", skip_rows_after_header=1)
-        .select("Current")
-        .mean()
-    ).collect()["Current"][0]
+    fast_firmware_current_data = (
+        pl.scan_csv(directory + "/fast_firmware.csv", skip_rows_after_header=1).select(
+            "Current"
+        )
+    ).collect()
+    # sos = signal.butter(10, 750, "low", fs=2000, output="sos")
+    # fast_firmware_current = np.mean(
+    #    signal.sosfilt(sos, fast_firmware_current_data["Current"])
+    # )
+    fast_firmware_current = np.mean(fast_firmware_current_data["Current"].to_numpy())
     print("Fast Firmware Current:", fast_firmware_current)
     shelly_plug_current = (
         pl.scan_csv(directory + "/shellyPlug.csv").select("Current").mean()
@@ -36,7 +42,7 @@ def calc_avg_power(directory: str) -> tuple[float, float, float, float, float, f
     ).collect(engine="streaming")["Current"][0]
     print("Pico Current:", pico_current, " Voltage:", pico_voltage)
     return (
-        fast_firmware_current,
+        float(fast_firmware_current),
         shelly_plug_current,
         shelly_plug_voltage,
         shelly_plug_power,

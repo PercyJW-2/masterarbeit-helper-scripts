@@ -1,5 +1,5 @@
 use bpaf::Bpaf;
-use std::path::PathBuf;
+use std::{fmt::Display, path::PathBuf, str::FromStr};
 
 #[derive(Bpaf, Debug, Clone)]
 pub(crate) struct Firmware {
@@ -21,6 +21,33 @@ pub(crate) enum FirmwareEnum {
     Firmware(#[bpaf(external(firmware))] Firmware),
 }
 
+#[derive(Debug, Clone)]
+pub(crate) enum OscilloscopeMsmtType {
+    UCurrent,
+    CurrentRanger,
+}
+
+impl FromStr for OscilloscopeMsmtType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "ucurrent" => Ok(OscilloscopeMsmtType::UCurrent),
+            "currentranger" => Ok(OscilloscopeMsmtType::CurrentRanger),
+            _ => Err(format!("String {s} is invalid")),
+        }
+    }
+}
+
+impl Display for OscilloscopeMsmtType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::UCurrent => write!(f, "UCurrent"),
+            Self::CurrentRanger => write!(f, "CurrentRanger"),
+        }
+    }
+}
+
 #[derive(Bpaf, Debug, Clone)]
 pub(crate) struct Oscilloscope {
     /// value on which measurement beginning is triggered, unit is in watts
@@ -39,6 +66,10 @@ pub(crate) struct Oscilloscope {
     /// beginning of the dataset. unit is in seconds
     #[bpaf(short, long, fallback(1./2000.), display_fallback)]
     pub(crate) frame_size: f64,
+    /// set measurement type to configure which calibration is used, Options are UCurrent or
+    /// CurrentRanger
+    #[bpaf(short, long, fallback(OscilloscopeMsmtType::CurrentRanger))]
+    pub(crate) measurement_type: OscilloscopeMsmtType,
 }
 
 #[derive(Bpaf, Debug, Clone)]

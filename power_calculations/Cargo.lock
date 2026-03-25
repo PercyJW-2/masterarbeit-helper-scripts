@@ -633,6 +633,7 @@ dependencies = [
  "indicatif",
  "matplotlib",
  "npyz",
+ "pyo3",
  "serde",
 ]
 

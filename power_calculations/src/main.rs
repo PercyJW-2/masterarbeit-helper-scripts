@@ -3,6 +3,8 @@ mod data_actions;
 mod data_reading;
 mod data_reading_types;
 
+use pyo3::prelude::*;
+
 use crate::args::*;
 use crate::data_actions::*;
 use crate::data_reading::*;
@@ -72,7 +74,14 @@ fn main() -> std::io::Result<()> {
 
         let mut osc_power = read_to_power_vector(pico_len, pico_reader, 100_000, |str_record| {
             let pico_measurement: PicoMeasurement = str_record.deserialize(None)?;
-            let current = (pico_measurement.current + 0.003326916) * 0.998687605682019;
+            let current = match osc_prefs.measurement_type {
+                OscilloscopeMsmtType::UCurrent => {
+                    (pico_measurement.current + 0.003326916) * 0.998687605682019
+                }
+                OscilloscopeMsmtType::CurrentRanger => {
+                    (pico_measurement.current + 0.00226039126953639) * 0.991674394344991
+                }
+            };
             let voltage = if osc_prefs.use_voltage {
                 pico_measurement.voltage
             } else {
@@ -136,16 +145,27 @@ fn main() -> std::io::Result<()> {
     }
 
     if args.plot {
-        std::process::Command::new("python")
-            .args([
-                "./../plot_energy_diffs.py",
-                actual_firmware_samplerate.to_string().as_str(),
-                osc_prefs.samplerate.to_string().as_str(),
-            ])
-            .spawn()
-            .expect("could not start plotting")
-            .wait()
-            .expect("got an execution error during plotting");
+        let energy_diff_script = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../plot_energy_diffs.py"
+        ));
+        let from_python = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
+            let script: Py<PyAny> = PyModule::from_code_bound(
+                py,
+                energy_diff_script,
+                "plot_energy_diffs.pyc",
+                "plot_energy_diffs.pyc",
+            )?
+            .getattr("main")?
+            .into();
+            script.call1(py, (actual_firmware_samplerate, osc_prefs.samplerate))
+        });
+        match from_python {
+            Ok(_) => {}
+            Err(e) => {
+                println!("Got Python error: {}", e);
+            }
+        }
     }
 
     Ok(())
