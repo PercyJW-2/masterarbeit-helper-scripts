@@ -100,6 +100,49 @@ fn cut_calculation(
     start_index
 }
 
+fn cut_calculation_power(
+    data: &PowerVec,
+    samplerate_opt: Option<f64>,
+    predicted_maximum: Option<f64>,
+    predicted_minimum: Option<f64>,
+    trigger_factor: f64,
+    window_size: f64,
+    plot: bool,
+) -> usize {
+    let (pred_max, pred_min) = if let Some(max) = predicted_maximum
+        && let Some(min) = predicted_minimum
+    {
+        (max, min)
+    } else {
+        println!("Searching for minimum and maximum...");
+        data.power_window_iter(window_size, samplerate_opt)
+            .max_and_min()
+    };
+    let trigger_value = (pred_max - pred_min) * trigger_factor + pred_min;
+    let mut energy_window_samples = vec![];
+    let mut stop_idx = None;
+    for (idx, win_energy) in data
+        .power_window_iter(window_size, samplerate_opt)
+        .enumerate()
+    {
+        if win_energy > trigger_value && stop_idx.is_none() {
+            stop_idx = Some(idx);
+            if !plot {
+                return idx;
+            }
+        }
+        if plot {
+            energy_window_samples.push(win_energy);
+        }
+    }
+    if plot {
+        let (_, [[mut ax]]) = plt::subplots().expect("Could not initiate matplotlib");
+        ax.y(&energy_window_samples).plot();
+        plt::show();
+    }
+    stop_idx.unwrap_or(0)
+}
+
 fn cut_start(
     mut data: PowerVec,
     threshold: f64,

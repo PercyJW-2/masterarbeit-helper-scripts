@@ -85,10 +85,10 @@ def calc_watt_per_second(
         if time_diff + frame_position > timeframe:
             time_to_fill_frame = timeframe - frame_position
             nrgy_to_fill_frame = nrgy * (time_to_fill_frame / time_diff)
-            normed_samples.append((frame_overshoot + nrgy_to_fill_frame) / timeframe)
+            normed_samples.append((frame_overshoot + nrgy_to_fill_frame))
             rem_diff = time_diff - time_to_fill_frame
             while rem_diff >= timeframe:
-                normed_samples.append((nrgy * (timeframe / time_diff)) / timeframe)
+                normed_samples.append((nrgy * (timeframe / time_diff)))
                 rem_diff -= timeframe
             frame_overshoot = nrgy * (rem_diff / time_diff)
             frame_position = rem_diff

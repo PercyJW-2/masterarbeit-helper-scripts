@@ -151,6 +151,18 @@ impl<'a> DoubleEndedIterator for PowerIter<'a> {
     }
 }
 
+impl<'a> ExactSizeIterator for PowerIter<'a> {
+    fn len(&self) -> usize {
+        if let Some(const_iter) = self.const_iter.as_ref() {
+            return const_iter.len();
+        }
+        if let Some(var_iter) = self.var_iter.as_ref() {
+            return var_iter.len();
+        }
+        0
+    }
+}
+
 pub(crate) enum PowerSample {
     Constant(Power),
     Variable(Timestamp, Power),
@@ -161,6 +173,7 @@ pub(crate) struct WindowEnergyIter<'a> {
     frame_size: f64,
     samplerate: f64,
     overshoot: f64,
+    frame_queue: VecDeque<f64>,
 }
 
 impl<'a> WindowEnergyIter<'a> {
@@ -176,6 +189,7 @@ impl<'a> WindowEnergyIter<'a> {
             frame_size,
             samplerate: samplerate_opt.unwrap_or(0.0),
             overshoot: 0.0,
+            frame_queue: VecDeque::new(),
         }
     }
 
@@ -196,6 +210,10 @@ impl<'a> WindowEnergyIter<'a> {
     }
 
     fn calc_frame(&mut self, reverse: bool) -> Option<f64> {
+        if !self.frame_queue.is_empty() {
+            return self.frame_queue.pop_back();
+        }
+
         let mut frame_pos = 0.0;
         let mut last_power;
         let mut last_time = 0.0;
@@ -238,12 +256,20 @@ impl<'a> WindowEnergyIter<'a> {
                 };
                 let current_energy = ((current_power + last_power) / 2.) * time_diff;
                 last_power = current_power;
-                if frame_pos + time_diff < self.frame_size {
-                    energy += current_energy;
+                if frame_pos + time_diff > self.frame_size {
+                    let time_to_fill_frame = self.frame_size - frame_pos;
+                    let nrgy_to_fill_frame = current_energy * (time_to_fill_frame / time_diff);
+                    self.frame_queue.push_front(nrgy_to_fill_frame + energy);
+                    let mut rem_time_diff = time_diff - time_to_fill_frame;
+                    while rem_time_diff >= self.frame_size {
+                        self.frame_queue
+                            .push_front(current_energy * (self.frame_size / time_diff));
+                        rem_time_diff -= self.frame_size;
+                    }
+                    self.overshoot = current_energy * (rem_time_diff / time_diff);
                 } else {
-                    let time_over_frame = (frame_pos + time_diff) - self.frame_size;
-                    self.overshoot = current_energy * (time_over_frame / time_diff);
-                    energy += energy - self.overshoot;
+                    energy += current_energy;
+                    self.overshoot = 0.0;
                 }
                 frame_pos += time_diff;
             } else {
