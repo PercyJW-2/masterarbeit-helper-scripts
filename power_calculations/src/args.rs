@@ -1,17 +1,19 @@
 use bpaf::Bpaf;
 use std::{fmt::Display, path::PathBuf, str::FromStr};
 
+const DEFAULT_THRESHOLD: f64 = 1. / 10.;
+
 #[derive(Bpaf, Debug, Clone)]
 pub(crate) struct Firmware {
-    /// value on which measurement beginning is triggered, unit is in watts
+    /// expected maximum energy value of measurement window of duration determined in frame_size
     #[bpaf(short, long)]
-    pub(crate) beginning_trigger_value: Option<f64>,
-    /// value on which measurement ending is determined, unit is in watts
+    pub(crate) predicted_maximum: Option<f64>,
+    /// expected minimum energy value of measurement window of duration determined in frame_size
     #[bpaf(short, long)]
-    pub(crate) end_trigger_value: Option<f64>,
+    pub(crate) predicted_minimum: Option<f64>,
     /// averaging frame size - configures duration of frame size wich is used to detect the
     /// beginning of the dataset. unit is in seconds
-    #[bpaf(short, long, fallback(1./2000.), display_fallback)]
+    #[bpaf(short, long, fallback(DEFAULT_THRESHOLD), display_fallback)]
     pub(crate) frame_size: f64,
 }
 
@@ -50,25 +52,30 @@ impl Display for OscilloscopeMsmtType {
 
 #[derive(Bpaf, Debug, Clone)]
 pub(crate) struct Oscilloscope {
-    /// value on which measurement beginning is triggered, unit is in watts
+    /// expected maximum energy value of measurement window of duration determined in frame_size
     #[bpaf(short, long)]
-    pub(crate) beginning_trigger_value: Option<f64>,
-    /// value on which measurement ending is determined, unit is in watts
+    pub(crate) predicted_maximum: Option<f64>,
+    /// expected minimum energy value of measurement window of duration determined in frame_size
     #[bpaf(short, long)]
-    pub(crate) end_trigger_value: Option<f64>,
-    #[bpaf(short('v'), long)]
+    pub(crate) predicted_minimum: Option<f64>,
+    /// averaging frame size - configures duration of frame size wich is used to detect the
+    /// beginning of the dataset. unit is in seconds
+    #[bpaf(short, long, fallback(DEFAULT_THRESHOLD), display_fallback)]
+    pub(crate) frame_size: f64,
     /// use osc-voltage measurement instead of voltage estimation
+    #[bpaf(short('v'), long)]
     pub(crate) use_voltage: bool,
     /// oscilloscope samplerate, unit is in samples per second
     #[bpaf(short, long, fallback(5_000_000.), display_fallback)]
     pub(crate) samplerate: f64,
-    /// averaging frame size - configures duration of frame size wich is used to detect the
-    /// beginning of the dataset. unit is in seconds
-    #[bpaf(short, long, fallback(1./2000.), display_fallback)]
-    pub(crate) frame_size: f64,
     /// set measurement type to configure which calibration is used, Options are UCurrent or
     /// CurrentRanger
-    #[bpaf(short, long, fallback(OscilloscopeMsmtType::CurrentRanger))]
+    #[bpaf(
+        short,
+        long,
+        fallback(OscilloscopeMsmtType::CurrentRanger),
+        display_fallback
+    )]
     pub(crate) measurement_type: OscilloscopeMsmtType,
 }
 
@@ -80,12 +87,16 @@ pub(crate) enum OscilloscopeEnum {
 
 #[derive(Bpaf, Debug, Clone)]
 pub(crate) struct Shelly {
-    /// value on which measurement beginning is triggered, unit is in watts
+    /// expected maximum energy value of measurement window of duration determined in frame_size
     #[bpaf(short, long)]
-    pub(crate) beginning_trigger_value: Option<f64>,
-    /// value on which measurement ending is determined, unit is in watts
+    pub(crate) predicted_maximum: Option<f64>,
+    /// expected minimum energy value of measurement window of duration determined in frame_size
     #[bpaf(short, long)]
-    pub(crate) end_trigger_value: Option<f64>,
+    pub(crate) predicted_minimum: Option<f64>,
+    /// averaging frame size - configures duration of frame size wich is used to detect the
+    /// beginning of the dataset. unit is in seconds
+    #[bpaf(short, long, fallback(DEFAULT_THRESHOLD), display_fallback)]
+    pub(crate) frame_size: f64,
 }
 
 #[derive(Bpaf, Debug, Clone)]
@@ -96,12 +107,16 @@ pub(crate) enum ShellyEnum {
 
 #[derive(Bpaf, Debug, Clone)]
 pub(crate) struct Jetson {
-    /// value on which measurement beginning is triggered, unit is in watts
+    /// expected maximum energy value of measurement window of duration determined in frame_size
     #[bpaf(short, long)]
-    pub(crate) beginning_trigger_value: Option<f64>,
-    /// value on which measurement ending is determined, unit is in watts
+    pub(crate) predicted_maximum: Option<f64>,
+    /// expected minimum energy value of measurement window of duration determined in frame_size
     #[bpaf(short, long)]
-    pub(crate) end_trigger_value: Option<f64>,
+    pub(crate) predicted_minimum: Option<f64>,
+    /// averaging frame size - configures duration of frame size wich is used to detect the
+    /// beginning of the dataset. unit is in seconds
+    #[bpaf(short, long, fallback(DEFAULT_THRESHOLD), display_fallback)]
+    pub(crate) frame_size: f64,
 }
 
 #[derive(Bpaf, Debug, Clone)]

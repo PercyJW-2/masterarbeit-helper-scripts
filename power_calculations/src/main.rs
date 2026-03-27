@@ -39,11 +39,13 @@ fn main() -> std::io::Result<()> {
                 current_power,
             ))
         })?;
-        jetson_power = cut_data_start_and_end(
+        let (jetson_max, jetson_min);
+        (jetson_power, jetson_max, jetson_min) = cut_data_start_and_end(
             jetson_power,
-            jetson_prefs.beginning_trigger_value,
-            jetson_prefs.end_trigger_value,
-            1. / 2_000.,
+            0.25,
+            jetson_prefs.predicted_maximum,
+            jetson_prefs.predicted_minimum,
+            jetson_prefs.frame_size,
             None,
             "Jetson",
         );
@@ -61,11 +63,13 @@ fn main() -> std::io::Result<()> {
                     power,
                 ))
             })?;
-        shelly_power_2 = cut_data_start_and_end(
+        let (shelly_max, shelly_min);
+        (shelly_power_2, shelly_max, shelly_min) = cut_data_start_and_end(
             shelly_power_2,
-            shelly_prefs.beginning_trigger_value,
-            shelly_prefs.end_trigger_value,
-            1. / 2_000.,
+            0.25,
+            shelly_prefs.predicted_maximum,
+            shelly_prefs.predicted_minimum,
+            shelly_prefs.frame_size,
             None,
             "Shelly",
         );
@@ -93,10 +97,12 @@ fn main() -> std::io::Result<()> {
 
         let osc_samplerate = osc_prefs.samplerate;
         osc_power = filter_data(osc_power, osc_samplerate, None);
-        osc_power = cut_data_start_and_end(
+        let (osc_max, osc_min);
+        (osc_power, osc_max, osc_min) = cut_data_start_and_end(
             osc_power,
-            osc_prefs.beginning_trigger_value,
-            osc_prefs.end_trigger_value,
+            0.25,
+            osc_prefs.predicted_maximum,
+            osc_prefs.predicted_minimum,
             osc_prefs.frame_size,
             Some(osc_prefs.samplerate),
             "Picoscope",
@@ -116,10 +122,12 @@ fn main() -> std::io::Result<()> {
             })?;
 
         firmware_power = filter_data(firmware_power, 2000., None);
-        firmware_power = cut_data_start_and_end(
+        let (firmware_max, firmware_min);
+        (firmware_power, firmware_max, firmware_min) = cut_data_start_and_end(
             firmware_power,
-            firmware_prefs.beginning_trigger_value,
-            firmware_prefs.end_trigger_value,
+            0.25,
+            firmware_prefs.predicted_maximum,
+            firmware_prefs.predicted_minimum,
             firmware_prefs.frame_size,
             Some(2000.),
             "Firmware",
@@ -136,10 +144,10 @@ fn main() -> std::io::Result<()> {
         let firmware_energy = calc_energy(&firmware_power, Some(actual_firmware_samplerate)); // placeholder
         println!(
             "
-        Oscilloscope Energy:                                       {osc_energy:.2} Joule
-        Firmware Energy (Estimated voltage from calculated curve): {firmware_energy:.2} Joule
-        Jetson Energy:                                             {jetson_energy:.2} Joule
-        Shelly Energy:                                             {shelly_energy_2:.2} Joule
+        Oscilloscope Energy:                                       {osc_energy:.2} Joule\t Max: {osc_max:.2}\t Min: {osc_min:.2}
+        Firmware Energy (Estimated voltage from calculated curve): {firmware_energy:.2} Joule\t Max: {firmware_max:.2}\t Min: {firmware_min:.2}
+        Jetson Energy:                                             {jetson_energy:.2} Joule\t Max: {jetson_max:.2}\t Min: {jetson_min:.2}
+        Shelly Energy:                                             {shelly_energy_2:.2} Joule\t Max: {shelly_max:.2}\t Min: {shelly_min:.2}
         "
         );
     }

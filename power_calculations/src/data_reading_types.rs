@@ -1,6 +1,6 @@
 use std::{
     collections::{VecDeque, vec_deque::Iter},
-    iter::Peekable,
+    iter::{Enumerate, Peekable},
 };
 
 use serde::Deserialize;
@@ -169,11 +169,11 @@ pub(crate) enum PowerSample {
 }
 
 pub(crate) struct WindowEnergyIter<'a> {
-    data: Peekable<PowerIter<'a>>,
+    data: Enumerate<Peekable<PowerIter<'a>>>,
     frame_size: f64,
     samplerate: f64,
     overshoot: f64,
-    frame_queue: VecDeque<f64>,
+    frame_queue: VecDeque<(usize, f64)>,
 }
 
 impl<'a> WindowEnergyIter<'a> {
@@ -185,7 +185,7 @@ impl<'a> WindowEnergyIter<'a> {
             unreachable!();
         }
         Self {
-            data: data_iter,
+            data: data_iter.enumerate(),
             frame_size,
             samplerate: samplerate_opt.unwrap_or(0.0),
             overshoot: 0.0,
@@ -197,7 +197,7 @@ impl<'a> WindowEnergyIter<'a> {
         let mut current_max = 0.;
         let mut current_min = f64::MAX;
 
-        for frame_power in self {
+        for (_, frame_power) in self {
             if frame_power > current_max {
                 current_max = frame_power;
             }
@@ -209,7 +209,7 @@ impl<'a> WindowEnergyIter<'a> {
         (current_max, current_min)
     }
 
-    fn calc_frame(&mut self, reverse: bool) -> Option<f64> {
+    fn calc_frame(&mut self, reverse: bool) -> Option<(usize, f64)> {
         if !self.frame_queue.is_empty() {
             return self.frame_queue.pop_back();
         }
@@ -223,7 +223,7 @@ impl<'a> WindowEnergyIter<'a> {
         } else {
             self.data.next()
         };
-        if let Some(fst_sample) = fst_smple_opt {
+        if let Some((_, fst_sample)) = fst_smple_opt {
             match fst_sample {
                 PowerSample::Constant(power) => {
                     last_power = power;
@@ -239,17 +239,20 @@ impl<'a> WindowEnergyIter<'a> {
 
         let mut energy = self.overshoot;
 
+        let mut last_idx = 0;
+
         while frame_pos < self.frame_size {
             let next_sample_opt = if reverse {
                 self.data.next_back()
             } else {
                 self.data.next()
             };
-            if let Some(next_sample) = next_sample_opt {
+            if let Some((idx, next_sample)) = next_sample_opt {
+                last_idx = idx;
                 let (current_power, time_diff) = match next_sample {
                     PowerSample::Constant(power) => (power, 1. / self.samplerate),
                     PowerSample::Variable(time, power) => {
-                        let diff = time - last_time;
+                        let diff = (time - last_time).abs();
                         last_time = time;
                         (power, diff)
                     }
@@ -259,30 +262,32 @@ impl<'a> WindowEnergyIter<'a> {
                 if frame_pos + time_diff > self.frame_size {
                     let time_to_fill_frame = self.frame_size - frame_pos;
                     let nrgy_to_fill_frame = current_energy * (time_to_fill_frame / time_diff);
-                    self.frame_queue.push_front(nrgy_to_fill_frame + energy);
+                    self.frame_queue
+                        .push_front((idx, nrgy_to_fill_frame + energy));
                     let mut rem_time_diff = time_diff - time_to_fill_frame;
                     while rem_time_diff >= self.frame_size {
                         self.frame_queue
-                            .push_front(current_energy * (self.frame_size / time_diff));
+                            .push_front((idx, current_energy * (self.frame_size / time_diff)));
                         rem_time_diff -= self.frame_size;
                     }
                     self.overshoot = current_energy * (rem_time_diff / time_diff);
+                    return self.frame_queue.pop_back();
                 } else {
                     energy += current_energy;
                     self.overshoot = 0.0;
                 }
                 frame_pos += time_diff;
             } else {
-                return Some(energy);
+                return Some((last_idx, energy));
             }
         }
 
-        Some(energy)
+        Some((last_idx, energy))
     }
 }
 
 impl<'a> Iterator for WindowEnergyIter<'a> {
-    type Item = f64;
+    type Item = (usize, f64);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.calc_frame(false)

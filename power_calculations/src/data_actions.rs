@@ -4,7 +4,7 @@ use matplotlib as plt;
 use npyz::WriterBuilder;
 use std::{
     fs::File,
-    io::{BufWriter, Result, Write, stdin, stdout},
+    io::{BufWriter, Result},
 };
 
 pub(crate) fn filter_data(
@@ -34,229 +34,147 @@ pub(crate) fn filter_data(
     data
 }
 
-fn cut_calculation(
-    data_iter: impl Iterator<Item = PowerSample>,
-    threshold: f64,
-    msmt_frame_duration: f64,
-    samplerate_opt: Option<f64>,
-    plot: bool,
-) -> u32 {
-    let mut data = data_iter.peekable();
-    let samplerate = samplerate_opt.unwrap_or(0.0);
-    if let Some(PowerSample::Constant(_)) = data.peek()
-        && samplerate == 0.0
-    {
-        unreachable!()
-    }
-    let mut power_avg = 0.0;
-    let mut current_time = 0.0;
-    let mut start_index = 0;
-    let mut current_sample_count = 0.;
-    let mut last_timestamp = 0.;
-    let mut avg_samples = vec![];
-    let mut found_start = false;
-    for sample in data {
-        match sample {
-            PowerSample::Constant(power) => {
-                power_avg += power;
-                current_time += 1. / samplerate;
-            }
-            PowerSample::Variable(t_stamp, power) => {
-                /*if last_timestamp == 0. {
-                    last_timestamp = t_stamp;
-                    continue;
-                }*/
-                power_avg += power;
-                current_time += (t_stamp - last_timestamp).abs();
-                last_timestamp = t_stamp;
-            }
-        }
-        current_sample_count += 1.;
-        if current_time >= msmt_frame_duration {
-            let power = power_avg / current_sample_count;
-            if power >= threshold && !found_start {
-                if plot {
-                    found_start = true;
-                } else {
-                    break;
-                }
-            }
-            if found_start {
-                avg_samples.push(power);
-            }
-            power_avg = 0.;
-            current_time = 0.;
-            current_sample_count = 0.;
-        }
-        if !found_start {
-            start_index += 1;
-        }
-    }
-    if plot {
-        let (_, [[mut ax]]) = plt::subplots().expect("Could not initiate matplotlib");
-        ax.y(&avg_samples).plot();
-        plt::show();
-    }
-    start_index
-}
-
-fn cut_calculation_power(
-    data: &PowerVec,
-    samplerate_opt: Option<f64>,
-    predicted_maximum: Option<f64>,
-    predicted_minimum: Option<f64>,
-    trigger_factor: f64,
-    window_size: f64,
-    plot: bool,
-) -> usize {
-    let (pred_max, pred_min) = if let Some(max) = predicted_maximum
-        && let Some(min) = predicted_minimum
-    {
-        (max, min)
-    } else {
-        println!("Searching for minimum and maximum...");
-        data.power_window_iter(window_size, samplerate_opt)
-            .max_and_min()
-    };
-    let trigger_value = (pred_max - pred_min) * trigger_factor + pred_min;
-    let mut energy_window_samples = vec![];
-    let mut stop_idx = None;
-    for (idx, win_energy) in data
-        .power_window_iter(window_size, samplerate_opt)
-        .enumerate()
-    {
-        if win_energy > trigger_value && stop_idx.is_none() {
-            stop_idx = Some(idx);
-            if !plot {
-                return idx;
-            }
-        }
-        if plot {
-            energy_window_samples.push(win_energy);
-        }
-    }
-    if plot {
-        let (_, [[mut ax]]) = plt::subplots().expect("Could not initiate matplotlib");
-        ax.y(&energy_window_samples).plot();
-        plt::show();
-    }
-    stop_idx.unwrap_or(0)
-}
-
-fn cut_start(
-    mut data: PowerVec,
-    threshold: f64,
-    msmt_frame_duration: f64,
-    samplerate_opt: Option<f64>,
-    plot: bool,
-) -> PowerVec {
-    let cut_count = cut_calculation(
-        data.iter(),
-        threshold,
-        msmt_frame_duration,
-        samplerate_opt,
-        plot,
-    );
-    for _ in 0..cut_count {
-        let _ = data.pop_front();
-    }
-    data
-}
-
-fn cut_end(
-    mut data: PowerVec,
-    threshold: f64,
-    msmt_frame_duration: f64,
-    samplerate_opt: Option<f64>,
-    plot: bool,
-) -> PowerVec {
-    let cut_count = cut_calculation(
-        data.iter().rev(),
-        threshold,
-        msmt_frame_duration,
-        samplerate_opt,
-        plot,
-    );
-    for _ in 0..cut_count {
-        let _ = data.pop_back();
-    }
-    data
-}
-
 enum Side {
     Start,
     End,
 }
 
 impl Side {
-    fn to_str(&self) -> &'static str {
-        match self {
-            Self::Start => "Start",
-            Self::End => "End",
+    fn cut_calculation_power(
+        data: impl Iterator<Item = (usize, f64)>,
+        trigger_value: f64,
+        plot: bool,
+    ) -> usize {
+        let mut energy_window_samples = vec![];
+        let mut stop_idx = None;
+        let mut window_idx = None;
+        for (idx, (data_idx, win_energy)) in data.enumerate() {
+            if win_energy > trigger_value && stop_idx.is_none() {
+                stop_idx = Some(data_idx);
+                window_idx = Some(idx);
+                if !plot {
+                    return data_idx;
+                }
+            }
+            if plot {
+                energy_window_samples.push(win_energy);
+            }
         }
+        if plot {
+            let (_, [[mut ax]]) = plt::subplots().expect("Could not initiate matplotlib");
+            ax.y(&energy_window_samples).plot();
+            ax.xy(
+                [window_idx.unwrap() as f64, window_idx.unwrap() as f64],
+                [0.0, trigger_value],
+            )
+            .plot();
+            plt::show();
+        }
+        stop_idx.unwrap_or(0)
     }
 
     fn cut_on_side(
         &self,
-        data: PowerVec,
-        threshold: f64,
-        msmt_frame_duration: f64,
+        mut data: PowerVec,
         samplerate_opt: Option<f64>,
+        trigger_value: f64,
+        window_size: f64,
         plot: bool,
     ) -> PowerVec {
-        match self {
-            Self::Start => cut_start(data, threshold, msmt_frame_duration, samplerate_opt, plot),
-            Self::End => cut_end(data, threshold, msmt_frame_duration, samplerate_opt, plot),
+        let frame_count = match self {
+            Self::Start => Self::cut_calculation_power(
+                data.power_window_iter(window_size, samplerate_opt),
+                trigger_value,
+                plot,
+            ),
+            Self::End => Self::cut_calculation_power(
+                data.power_window_iter(window_size, samplerate_opt).rev(),
+                trigger_value,
+                plot,
+            ),
+        };
+        let trigger_timestamp = frame_count as f64 * window_size;
+        println!("Timestamp at cutting position: {trigger_timestamp}");
+        match &mut data {
+            PowerVec::Constant(data) => {
+                let samplerate = samplerate_opt.unwrap();
+                let sample_count = (trigger_timestamp / (1. / samplerate)) as usize;
+                println!("Samples to remove: {sample_count}");
+                match self {
+                    Self::Start => {
+                        for _ in 0..sample_count {
+                            data.pop_front();
+                        }
+                    }
+                    Self::End => {
+                        for _ in 0..sample_count {
+                            data.pop_back();
+                        }
+                    }
+                }
+            }
+            PowerVec::Variable(data) => {
+                let mut sample_count = 0;
+                match self {
+                    Self::Start => {
+                        let adjusted_trigger_timestamp = trigger_timestamp + data[0].0;
+                        for (timestamp, _) in data.iter() {
+                            if *timestamp >= adjusted_trigger_timestamp {
+                                break;
+                            }
+                            sample_count += 1;
+                        }
+                        println!("Samples to remove: {sample_count}");
+                        for _ in 0..sample_count {
+                            data.pop_front();
+                        }
+                    }
+                    Self::End => {
+                        let adjusted_trigger_timestamp = data[data.len() - 1].0 - trigger_timestamp;
+                        for (timestamp, _) in data.iter().rev() {
+                            if *timestamp <= adjusted_trigger_timestamp {
+                                break;
+                            }
+                            sample_count += 1;
+                        }
+                        println!("Samples to remove: {sample_count}");
+                        for _ in 0..sample_count {
+                            data.pop_back();
+                        }
+                    }
+                }
+            }
         }
-    }
-}
-
-fn data_cut_calibration(
-    data: PowerVec,
-    threshold_opt: Option<f64>,
-    msmt_frame_duration: f64,
-    samplerate_opt: Option<f64>,
-    side: Side,
-) -> PowerVec {
-    println!("Cutting on {}", side.to_str());
-    if let Some(threshold) = threshold_opt {
-        side.cut_on_side(data, threshold, msmt_frame_duration, samplerate_opt, false)
-    } else {
-        let power = side.cut_on_side(data, 0.0, msmt_frame_duration, samplerate_opt, true);
-        print!("Provide threshold: ");
-        stdout().flush().expect("Could not flush stdout");
-        let mut buffer = String::new();
-        stdin()
-            .read_line(&mut buffer)
-            .expect("Could not read from stdin");
-        let threshold: f64 = buffer.trim().parse().expect("Could not parse float");
-        side.cut_on_side(power, threshold, msmt_frame_duration, samplerate_opt, true)
+        data
     }
 }
 
 pub(crate) fn cut_data_start_and_end(
-    data: PowerVec,
-    threshold_start: Option<f64>,
-    threshold_end: Option<f64>,
-    msmt_frame_duration: f64,
+    mut data: PowerVec,
+    trigger_factor: f64,
+    pred_max: Option<f64>,
+    pred_min: Option<f64>,
+    window_size: f64,
     samplerate_opt: Option<f64>,
     data_name: &'static str,
-) -> PowerVec {
+) -> (PowerVec, f64, f64) {
     println!("Starting data cutting of {data_name}");
-    let data_cut_start = data_cut_calibration(
-        data,
-        threshold_start,
-        msmt_frame_duration,
-        samplerate_opt,
-        Side::Start,
-    );
-    data_cut_calibration(
-        data_cut_start,
-        threshold_end,
-        msmt_frame_duration,
-        samplerate_opt,
-        Side::End,
-    )
+    let (max, min) = if let Some(p_max) = pred_max
+        && let Some(p_min) = pred_min
+    {
+        (p_max, p_min)
+    } else {
+        println!("Searching maximum and minimum values");
+        data.power_window_iter(window_size, samplerate_opt)
+            .max_and_min()
+    };
+    let trigger_value = (max - min) * trigger_factor + min;
+    println!("Trigger value: {trigger_value}");
+    println!("Cutting on start");
+    data = Side::Start.cut_on_side(data, samplerate_opt, trigger_value, window_size, true);
+    println!("Cutting on end");
+    data = Side::End.cut_on_side(data, samplerate_opt, trigger_value, window_size, true);
+    (data, max, min)
 }
 
 pub(crate) fn calc_energy(data: &PowerVec, samplerate_opt: Option<f64>) -> f64 {
