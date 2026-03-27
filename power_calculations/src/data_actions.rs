@@ -81,7 +81,7 @@ impl Side {
         window_size: f64,
         plot: bool,
     ) -> PowerVec {
-        let frame_count = match self {
+        let data_trigger_idx = match self {
             Self::Start => Self::cut_calculation_power(
                 data.power_window_iter(window_size, samplerate_opt),
                 trigger_value,
@@ -93,58 +93,22 @@ impl Side {
                 plot,
             ),
         };
-        let trigger_timestamp = frame_count as f64 * window_size;
-        println!("Timestamp at cutting position: {trigger_timestamp}");
-        match &mut data {
-            PowerVec::Constant(data) => {
-                let samplerate = samplerate_opt.unwrap();
-                let sample_count = (trigger_timestamp / (1. / samplerate)) as usize;
-                println!("Samples to remove: {sample_count}");
-                match self {
-                    Self::Start => {
-                        for _ in 0..sample_count {
-                            data.pop_front();
-                        }
-                    }
-                    Self::End => {
-                        for _ in 0..sample_count {
-                            data.pop_back();
-                        }
-                    }
+        println!("Trigger idx: {data_trigger_idx}");
+        match self {
+            Self::Start => {
+                let sample_count = data_trigger_idx + 1;
+                for _ in 0..sample_count {
+                    data.pop_front();
                 }
             }
-            PowerVec::Variable(data) => {
-                let mut sample_count = 0;
-                match self {
-                    Self::Start => {
-                        let adjusted_trigger_timestamp = trigger_timestamp + data[0].0;
-                        for (timestamp, _) in data.iter() {
-                            if *timestamp >= adjusted_trigger_timestamp {
-                                break;
-                            }
-                            sample_count += 1;
-                        }
-                        println!("Samples to remove: {sample_count}");
-                        for _ in 0..sample_count {
-                            data.pop_front();
-                        }
-                    }
-                    Self::End => {
-                        let adjusted_trigger_timestamp = data[data.len() - 1].0 - trigger_timestamp;
-                        for (timestamp, _) in data.iter().rev() {
-                            if *timestamp <= adjusted_trigger_timestamp {
-                                break;
-                            }
-                            sample_count += 1;
-                        }
-                        println!("Samples to remove: {sample_count}");
-                        for _ in 0..sample_count {
-                            data.pop_back();
-                        }
-                    }
+            Self::End => {
+                let sample_count = data.len() - data_trigger_idx;
+                for _ in 0..sample_count {
+                    data.pop_back();
                 }
             }
         }
+
         data
     }
 }
