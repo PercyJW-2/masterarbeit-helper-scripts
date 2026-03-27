@@ -48,10 +48,9 @@ impl Side {
         let mut energy_window_samples = vec![];
         let mut stop_idx = None;
         let mut window_idx = None;
-        let mut idx = 0;
-        for (data_idx, win_energy) in data {
+        for (idx, (data_idx, win_energy)) in data.enumerate() {
             if win_energy > trigger_value && stop_idx.is_none() {
-                stop_idx = Some(data_idx + 1);
+                stop_idx = Some(data_idx);
                 window_idx = Some(idx);
                 if !plot {
                     return data_idx;
@@ -60,13 +59,15 @@ impl Side {
             if plot {
                 energy_window_samples.push(win_energy);
             }
-            idx += 1;
         }
         if plot {
             let (_, [[mut ax]]) = plt::subplots().expect("Could not initiate matplotlib");
             ax.y(&energy_window_samples).plot();
             ax.xy(
-                [window_idx.unwrap() as f64, window_idx.unwrap() as f64],
+                [
+                    window_idx.unwrap_or(0) as f64,
+                    window_idx.unwrap_or(0) as f64,
+                ],
                 [0.0, trigger_value],
             )
             .plot();
@@ -123,22 +124,23 @@ pub(crate) fn cut_data_start_and_end(
     data_name: &'static str,
 ) -> (PowerVec, f64, f64) {
     println!("Starting data cutting of {data_name}");
-    let (max, min) = if let Some(p_max) = pred_max
+    let (max, idle_start, idle_end) = if let Some(p_max) = pred_max
         && let Some(p_min) = pred_min
     {
-        (p_max, p_min)
+        (p_max, p_min, p_min)
     } else {
-        println!("Searching maximum and minimum values");
+        println!("Searching maximum and idle values");
         data.power_window_iter(window_size, samplerate_opt)
-            .max_and_min()
+            .max_and_idle_start_end()
     };
-    let trigger_value = (max - min) * trigger_factor + min;
-    println!("Trigger value: {trigger_value}");
+    let trigger_value_start = (max - idle_start) * trigger_factor + idle_start;
+    let trigger_value_end = (max - idle_end) * trigger_factor + idle_end;
+    println!("Trigger value: {trigger_value_start}\t{trigger_value_end}");
     println!("Cutting on start");
-    data = Side::Start.cut_on_side(data, samplerate_opt, trigger_value, window_size, true);
+    data = Side::Start.cut_on_side(data, samplerate_opt, trigger_value_start, window_size, true);
     println!("Cutting on end");
-    data = Side::End.cut_on_side(data, samplerate_opt, trigger_value, window_size, true);
-    (data, max, min)
+    data = Side::End.cut_on_side(data, samplerate_opt, trigger_value_end, window_size, true);
+    (data, max, trigger_value_end)
 }
 
 pub(crate) fn calc_energy(data: &PowerVec, samplerate_opt: Option<f64>) -> f64 {

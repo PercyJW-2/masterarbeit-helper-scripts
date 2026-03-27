@@ -42,7 +42,7 @@ fn main() -> std::io::Result<()> {
         let (jetson_max, jetson_min);
         (jetson_power, jetson_max, jetson_min) = cut_data_start_and_end(
             jetson_power,
-            0.25,
+            0.2,
             jetson_prefs.predicted_maximum,
             jetson_prefs.predicted_minimum,
             jetson_prefs.frame_size,
@@ -66,7 +66,7 @@ fn main() -> std::io::Result<()> {
         let (shelly_max, shelly_min);
         (shelly_power_2, shelly_max, shelly_min) = cut_data_start_and_end(
             shelly_power_2,
-            0.25,
+            0.05,
             shelly_prefs.predicted_maximum,
             shelly_prefs.predicted_minimum,
             shelly_prefs.frame_size,

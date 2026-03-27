@@ -85,16 +85,14 @@ impl PowerVec {
 
     fn get_first(&self) -> Option<PowerSample> {
         match self {
-            PowerVec::Constant(data) => data
-                .front()
-                .map(|val| PowerSample::Constant(*val)),
+            PowerVec::Constant(data) => data.front().map(|val| PowerSample::Constant(*val)),
             PowerVec::Variable(data) => data
                 .front()
-                .map(|(tstmp, val)| PowerSample::Variable(*tstmp, *val))
+                .map(|(tstmp, val)| PowerSample::Variable(*tstmp, *val)),
         }
     }
 
-    pub(crate) fn iter(&self) -> PowerIter {
+    pub(crate) fn iter(&self) -> PowerIter<'_> {
         PowerIter::new(self)
     }
 
@@ -102,8 +100,16 @@ impl PowerVec {
         &self,
         frame_size: f64,
         samplerate_opt: Option<f64>,
-    ) -> WindowEnergyIter {
-        WindowEnergyIter::new(self, frame_size, samplerate_opt)
+    ) -> WindowEnergyIter<'_> {
+        let duration = match self {
+            Self::Constant(data) => data.len() as f64 * (1.0 / samplerate_opt.unwrap()),
+            Self::Variable(data) => {
+                let (start, _) = *data.front().unwrap();
+                let (end, _) = *data.back().unwrap();
+                end - start
+            }
+        };
+        WindowEnergyIter::new(self, frame_size, samplerate_opt, duration)
     }
 }
 
@@ -193,10 +199,16 @@ pub(crate) struct WindowEnergyIter<'a> {
     samplerate: f64,
     overshoot: f64,
     frame_queue: VecDeque<(usize, f64)>,
+    duration: f64,
 }
 
 impl<'a> WindowEnergyIter<'a> {
-    pub(crate) fn new(data: &'a PowerVec, frame_size: f64, samplerate_opt: Option<f64>) -> Self {
+    pub(crate) fn new(
+        data: &'a PowerVec,
+        frame_size: f64,
+        samplerate_opt: Option<f64>,
+        duration: f64,
+    ) -> Self {
         if let Some(PowerSample::Constant(_)) = data.get_first()
             && let None = samplerate_opt
         {
@@ -208,23 +220,54 @@ impl<'a> WindowEnergyIter<'a> {
             samplerate: samplerate_opt.unwrap_or(0.0),
             overshoot: 0.0,
             frame_queue: VecDeque::new(),
+            duration,
         }
     }
 
-    pub(crate) fn max_and_min(self) -> (f64, f64) {
+    pub(crate) fn max_and_idle_start_end(self) -> (f64, f64, f64) {
         let mut current_max = 0.;
-        let mut current_min = f64::MAX;
+        let mut idle_start = 0.;
+        let mut idle_end = 0.;
 
-        for (_, frame_power) in self {
+        let frame_size = self.frame_size;
+        let idle_frames = 5.0 / frame_size;
+        let duration = self.duration;
+
+        for (idx, (_, frame_power)) in self.enumerate() {
+            if idx as f64 * frame_size < 5.0 {
+                idle_start += frame_power;
+            } else if idx as f64 * frame_size > duration - 5.0 {
+                idle_end += frame_power;
+            }
             if frame_power > current_max {
                 current_max = frame_power;
             }
-            if frame_power < current_min {
-                current_min = frame_power;
-            }
         }
 
-        (current_max, current_min)
+        (
+            current_max,
+            idle_start / idle_frames,
+            idle_end / idle_frames,
+        )
+    }
+
+    pub(crate) fn mad(self) -> f64 {
+        fn median(data: &mut [f64]) -> f64 {
+            data.sort_unstable_by(|a, b| a.total_cmp(b));
+            if data.len().is_multiple_of(2) {
+                let left_idx = data.len() / 2 - 1;
+                let right_idx = data.len() / 2;
+                (data[left_idx] + data[right_idx]) / 2.0
+            } else {
+                data[data.len() / 2]
+            }
+        }
+        let mut samples: Vec<f64> = self.map(|(_, val)| val).collect();
+        let med = median(samples.as_mut_slice());
+        samples.iter_mut().for_each(|val| {
+            *val = (*val - med).abs();
+        });
+        median(samples.as_mut_slice())
     }
 
     fn calc_frame(&mut self, reverse: bool) -> Option<(usize, f64)> {
@@ -281,8 +324,10 @@ impl<'a> WindowEnergyIter<'a> {
                         .push_front((self.data.iter_count(), nrgy_to_fill_frame + energy));
                     let mut rem_time_diff = time_diff - time_to_fill_frame;
                     while rem_time_diff >= self.frame_size {
-                        self.frame_queue
-                            .push_front((self.data.iter_count(), current_energy * (self.frame_size / time_diff)));
+                        self.frame_queue.push_front((
+                            self.data.iter_count(),
+                            current_energy * (self.frame_size / time_diff),
+                        ));
                         rem_time_diff -= self.frame_size;
                     }
                     self.overshoot = current_energy * (rem_time_diff / time_diff);
