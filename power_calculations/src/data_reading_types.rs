@@ -83,22 +83,34 @@ impl PowerVec {
         }
     }
 
-    pub(crate) fn iter<'a>(&'a self) -> PowerIter<'a> {
+    fn get_first(&self) -> Option<PowerSample> {
+        match self {
+            PowerVec::Constant(data) => data
+                .front()
+                .map(|val| PowerSample::Constant(*val)),
+            PowerVec::Variable(data) => data
+                .front()
+                .map(|(tstmp, val)| PowerSample::Variable(*tstmp, *val))
+        }
+    }
+
+    pub(crate) fn iter(&self) -> PowerIter {
         PowerIter::new(self)
     }
 
-    pub(crate) fn power_window_iter<'a>(
-        &'a self,
+    pub(crate) fn power_window_iter(
+        &self,
         frame_size: f64,
         samplerate_opt: Option<f64>,
-    ) -> WindowEnergyIter<'a> {
-        WindowEnergyIter::new(self.iter(), frame_size, samplerate_opt)
+    ) -> WindowEnergyIter {
+        WindowEnergyIter::new(self, frame_size, samplerate_opt)
     }
 }
 
 pub(crate) struct PowerIter<'a> {
     const_iter: Option<Iter<'a, f64>>,
     var_iter: Option<Iter<'a, (f64, f64)>>,
+    iter_count: usize,
 }
 
 impl<'a> PowerIter<'a> {
@@ -116,13 +128,19 @@ impl<'a> PowerIter<'a> {
         Self {
             const_iter,
             var_iter,
+            iter_count: 0,
         }
+    }
+
+    fn iter_count(&self) -> usize {
+        self.iter_count
     }
 }
 
 impl<'a> Iterator for PowerIter<'a> {
     type Item = PowerSample;
     fn next(&mut self) -> Option<Self::Item> {
+        self.iter_count += 1;
         if let Some(const_iter) = self.const_iter.as_mut() {
             return const_iter.next().map(|elem| Self::Item::Constant(*elem));
         }
@@ -137,6 +155,7 @@ impl<'a> Iterator for PowerIter<'a> {
 
 impl<'a> DoubleEndedIterator for PowerIter<'a> {
     fn next_back(&mut self) -> Option<Self::Item> {
+        self.iter_count += 1;
         if let Some(const_iter) = self.const_iter.as_mut() {
             return const_iter
                 .next_back()
@@ -169,7 +188,7 @@ pub(crate) enum PowerSample {
 }
 
 pub(crate) struct WindowEnergyIter<'a> {
-    data: Enumerate<Peekable<PowerIter<'a>>>,
+    data: PowerIter<'a>,
     frame_size: f64,
     samplerate: f64,
     overshoot: f64,
@@ -177,15 +196,14 @@ pub(crate) struct WindowEnergyIter<'a> {
 }
 
 impl<'a> WindowEnergyIter<'a> {
-    pub(crate) fn new(data: PowerIter<'a>, frame_size: f64, samplerate_opt: Option<f64>) -> Self {
-        let mut data_iter = data.peekable();
-        if let Some(PowerSample::Constant(_)) = data_iter.peek()
+    pub(crate) fn new(data: &'a PowerVec, frame_size: f64, samplerate_opt: Option<f64>) -> Self {
+        if let Some(PowerSample::Constant(_)) = data.get_first()
             && let None = samplerate_opt
         {
             unreachable!();
         }
         Self {
-            data: data_iter.enumerate(),
+            data: data.iter(),
             frame_size,
             samplerate: samplerate_opt.unwrap_or(0.0),
             overshoot: 0.0,
@@ -223,7 +241,7 @@ impl<'a> WindowEnergyIter<'a> {
         } else {
             self.data.next()
         };
-        if let Some((_, fst_sample)) = fst_smple_opt {
+        if let Some(fst_sample) = fst_smple_opt {
             match fst_sample {
                 PowerSample::Constant(power) => {
                     last_power = power;
@@ -239,16 +257,13 @@ impl<'a> WindowEnergyIter<'a> {
 
         let mut energy = self.overshoot;
 
-        let mut last_idx = 0;
-
         while frame_pos < self.frame_size {
             let next_sample_opt = if reverse {
                 self.data.next_back()
             } else {
                 self.data.next()
             };
-            if let Some((idx, next_sample)) = next_sample_opt {
-                last_idx = idx;
+            if let Some(next_sample) = next_sample_opt {
                 let (current_power, time_diff) = match next_sample {
                     PowerSample::Constant(power) => (power, 1. / self.samplerate),
                     PowerSample::Variable(time, power) => {
@@ -263,11 +278,11 @@ impl<'a> WindowEnergyIter<'a> {
                     let time_to_fill_frame = self.frame_size - frame_pos;
                     let nrgy_to_fill_frame = current_energy * (time_to_fill_frame / time_diff);
                     self.frame_queue
-                        .push_front((idx, nrgy_to_fill_frame + energy));
+                        .push_front((self.data.iter_count(), nrgy_to_fill_frame + energy));
                     let mut rem_time_diff = time_diff - time_to_fill_frame;
                     while rem_time_diff >= self.frame_size {
                         self.frame_queue
-                            .push_front((idx, current_energy * (self.frame_size / time_diff)));
+                            .push_front((self.data.iter_count(), current_energy * (self.frame_size / time_diff)));
                         rem_time_diff -= self.frame_size;
                     }
                     self.overshoot = current_energy * (rem_time_diff / time_diff);
@@ -278,11 +293,11 @@ impl<'a> WindowEnergyIter<'a> {
                 }
                 frame_pos += time_diff;
             } else {
-                return Some((last_idx, energy));
+                return Some((self.data.iter_count(), energy));
             }
         }
 
-        Some((last_idx, energy))
+        Some((self.data.iter_count(), energy))
     }
 }
 

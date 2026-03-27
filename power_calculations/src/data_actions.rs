@@ -48,9 +48,10 @@ impl Side {
         let mut energy_window_samples = vec![];
         let mut stop_idx = None;
         let mut window_idx = None;
-        for (idx, (data_idx, win_energy)) in data.enumerate() {
+        let mut idx = 0;
+        for (data_idx, win_energy) in data {
             if win_energy > trigger_value && stop_idx.is_none() {
-                stop_idx = Some(data_idx);
+                stop_idx = Some(data_idx + 1);
                 window_idx = Some(idx);
                 if !plot {
                     return data_idx;
@@ -59,6 +60,7 @@ impl Side {
             if plot {
                 energy_window_samples.push(win_energy);
             }
+            idx += 1;
         }
         if plot {
             let (_, [[mut ax]]) = plt::subplots().expect("Could not initiate matplotlib");
@@ -81,7 +83,7 @@ impl Side {
         window_size: f64,
         plot: bool,
     ) -> PowerVec {
-        let data_trigger_idx = match self {
+        let iterations = match self {
             Self::Start => Self::cut_calculation_power(
                 data.power_window_iter(window_size, samplerate_opt),
                 trigger_value,
@@ -93,17 +95,15 @@ impl Side {
                 plot,
             ),
         };
-        println!("Trigger idx: {data_trigger_idx}");
+        println!("Elements to remove: {iterations}");
         match self {
             Self::Start => {
-                let sample_count = data_trigger_idx + 1;
-                for _ in 0..sample_count {
+                for _ in 0..iterations {
                     data.pop_front();
                 }
             }
             Self::End => {
-                let sample_count = data.len() - data_trigger_idx;
-                for _ in 0..sample_count {
+                for _ in 0..iterations {
                     data.pop_back();
                 }
             }
