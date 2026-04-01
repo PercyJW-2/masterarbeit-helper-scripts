@@ -18,8 +18,10 @@ fn main() -> std::io::Result<()> {
     let ShellyEnum::Shelly(shelly_prefs) = args.shelly_enum;
     let JetsonEnum::Jetson(jetson_prefs) = args.jetson_enum;
 
-    let actual_firmware_samplerate;
-
+    let mut jetson_idx: Option<(usize, usize)> = None;
+    let mut shelly_idx: Option<(usize, usize)> = None;
+    let mut osc_idx: Option<(usize, usize)> = None;
+    let mut firmware_idx: Option<(usize, usize)> = None;
     {
         let (jetson_len, jetson_reader) =
             init_reader("jetson.csv", args.measurement_location.clone())?;
@@ -39,16 +41,35 @@ fn main() -> std::io::Result<()> {
                 current_power,
             ))
         })?;
+        const JETSON_TRIGGER_FACTOR: f64 = 0.2;
         let (jetson_max, jetson_min);
-        (jetson_power, jetson_max, jetson_min) = cut_data_start_and_end(
-            jetson_power,
-            0.2,
-            jetson_prefs.predicted_maximum,
-            jetson_prefs.predicted_minimum,
-            jetson_prefs.frame_size,
-            None,
-            "Jetson",
-        );
+        if args.dont_cut {
+            let (jetson_start_idx, jetson_end_idx);
+            (jetson_start_idx, jetson_end_idx, jetson_max, jetson_min) = find_data_start_and_end(
+                &jetson_power,
+                JETSON_TRIGGER_FACTOR,
+                jetson_prefs
+                    .predicted_maximum
+                    .zip(jetson_prefs.predicted_minimum),
+                jetson_prefs.frame_size,
+                None,
+                "Jetson",
+                args.plot_intermediates,
+            );
+            jetson_idx = Some((jetson_start_idx, jetson_end_idx));
+        } else {
+            (jetson_power, jetson_max, jetson_min) = cut_data_start_and_end(
+                jetson_power,
+                0.2,
+                jetson_prefs
+                    .predicted_maximum
+                    .zip(jetson_prefs.predicted_minimum),
+                jetson_prefs.frame_size,
+                None,
+                "Jetson",
+                args.plot_intermediates,
+            );
+        }
         save_vec_to_npy(&jetson_power, "jetson.npy")?;
         let jetson_energy = calc_energy(&jetson_power, None);
 
@@ -63,16 +84,35 @@ fn main() -> std::io::Result<()> {
                     power,
                 ))
             })?;
+        const SHELLY_TRIGGER_FACTOR: f64 = 0.05;
         let (shelly_max, shelly_min);
-        (shelly_power_2, shelly_max, shelly_min) = cut_data_start_and_end(
-            shelly_power_2,
-            0.05,
-            shelly_prefs.predicted_maximum,
-            shelly_prefs.predicted_minimum,
-            shelly_prefs.frame_size,
-            None,
-            "Shelly",
-        );
+        if args.dont_cut {
+            let (shelly_start_idx, shelly_end_idx);
+            (shelly_start_idx, shelly_end_idx, shelly_max, shelly_min) = find_data_start_and_end(
+                &shelly_power_2,
+                SHELLY_TRIGGER_FACTOR,
+                shelly_prefs
+                    .predicted_maximum
+                    .zip(shelly_prefs.predicted_minimum),
+                shelly_prefs.frame_size,
+                None,
+                "Shelly",
+                args.plot_intermediates,
+            );
+            shelly_idx = Some((shelly_start_idx, shelly_end_idx));
+        } else {
+            (shelly_power_2, shelly_max, shelly_min) = cut_data_start_and_end(
+                shelly_power_2,
+                SHELLY_TRIGGER_FACTOR,
+                shelly_prefs
+                    .predicted_maximum
+                    .zip(shelly_prefs.predicted_minimum),
+                shelly_prefs.frame_size,
+                None,
+                "Shelly",
+                args.plot_intermediates,
+            );
+        }
         save_vec_to_npy(&shelly_power_2, "shelly.npy")?;
         let shelly_energy_2 = calc_energy(&shelly_power_2, None);
 
@@ -97,16 +137,31 @@ fn main() -> std::io::Result<()> {
 
         let osc_samplerate = osc_prefs.samplerate;
         osc_power = filter_data(osc_power, osc_samplerate, None);
+        const OSC_TRIGGER_FACTOR: f64 = 0.25;
         let (osc_max, osc_min);
-        (osc_power, osc_max, osc_min) = cut_data_start_and_end(
-            osc_power,
-            0.25,
-            osc_prefs.predicted_maximum,
-            osc_prefs.predicted_minimum,
-            osc_prefs.frame_size,
-            Some(osc_prefs.samplerate),
-            "Picoscope",
-        );
+        if args.dont_cut {
+            let (osc_start_idx, osc_end_idx);
+            (osc_start_idx, osc_end_idx, osc_max, osc_min) = find_data_start_and_end(
+                &osc_power,
+                OSC_TRIGGER_FACTOR,
+                osc_prefs.predicted_maximum.zip(osc_prefs.predicted_minimum),
+                osc_prefs.frame_size,
+                Some(osc_samplerate),
+                "Picoscope",
+                args.plot_intermediates,
+            );
+            osc_idx = Some((osc_start_idx, osc_end_idx));
+        } else {
+            (osc_power, osc_max, osc_min) = cut_data_start_and_end(
+                osc_power,
+                OSC_TRIGGER_FACTOR,
+                osc_prefs.predicted_maximum.zip(osc_prefs.predicted_minimum),
+                osc_prefs.frame_size,
+                Some(osc_prefs.samplerate),
+                "Picoscope",
+                args.plot_intermediates,
+            );
+        }
         save_vec_to_npy(&osc_power, "oscilloscope.npy")?;
         let osc_energy = calc_energy(&osc_power, Some(osc_samplerate));
 
@@ -122,33 +177,98 @@ fn main() -> std::io::Result<()> {
             })?;
 
         firmware_power = filter_data(firmware_power, 2000., None);
+        const FIRMWARE_TRIGGER_FACTOR: f64 = 0.25;
         let (firmware_max, firmware_min);
-        (firmware_power, firmware_max, firmware_min) = cut_data_start_and_end(
-            firmware_power,
-            0.25,
-            firmware_prefs.predicted_maximum,
-            firmware_prefs.predicted_minimum,
-            firmware_prefs.frame_size,
-            Some(2000.),
-            "Firmware",
-        );
-
-        actual_firmware_samplerate = {
-            let diff_percentage = firmware_power.len() as f64 / osc_power.len() as f64;
-            osc_samplerate * diff_percentage
-        };
-        println!("Actual firmware samplerate: {actual_firmware_samplerate}");
+        if args.dont_cut {
+            let (firmware_start_idx, firmware_end_idx);
+            (
+                firmware_start_idx,
+                firmware_end_idx,
+                firmware_max,
+                firmware_min,
+            ) = find_data_start_and_end(
+                &firmware_power,
+                FIRMWARE_TRIGGER_FACTOR,
+                firmware_prefs
+                    .predicted_maximum
+                    .zip(firmware_prefs.predicted_minimum),
+                firmware_prefs.frame_size,
+                Some(2000.),
+                "Firmware",
+                args.plot_intermediates,
+            );
+            firmware_idx = Some((firmware_start_idx, firmware_end_idx));
+        } else {
+            (firmware_power, firmware_max, firmware_min) = cut_data_start_and_end(
+                firmware_power,
+                0.25,
+                firmware_prefs
+                    .predicted_maximum
+                    .zip(firmware_prefs.predicted_minimum),
+                firmware_prefs.frame_size,
+                Some(2000.),
+                "Firmware",
+                args.plot_intermediates,
+            );
+        }
 
         save_vec_to_npy(&firmware_power, "firmware_power.npy")?;
 
-        let firmware_energy = calc_energy(&firmware_power, Some(actual_firmware_samplerate)); // placeholder
+        let firmware_energy = calc_energy(&firmware_power, Some(2000.));
+
+        let osc_duration = if let Some((start_idx, end_idx)) = osc_idx {
+            ((end_idx - start_idx) + 1) as f64 / osc_samplerate
+        } else {
+            osc_power.len() as f64 / osc_samplerate
+        };
+        let firmware_duration = if let Some((start_idx, end_idx)) = firmware_idx {
+            ((end_idx - start_idx) + 1) as f64 / 2000.
+        } else {
+            firmware_power.len() as f64 / 2000.
+        };
+        let jetson_duration = if let Some((start_idx, end_idx)) = jetson_idx {
+            let unwrapped = if let PowerVec::Variable(unwrapped) = jetson_power {
+                unwrapped
+            } else {
+                unreachable!()
+            };
+            unwrapped[end_idx].0 - unwrapped[start_idx].0
+        } else {
+            let unwrapped = if let PowerVec::Variable(unwrapped) = jetson_power {
+                unwrapped
+            } else {
+                unreachable!()
+            };
+            unwrapped[unwrapped.len() - 1].0 - unwrapped[0].0
+        };
+        let shelly_duration = if let Some((start_idx, end_idx)) = shelly_idx {
+            let unwrapped = if let PowerVec::Variable(unwrapped) = shelly_power_2 {
+                unwrapped
+            } else {
+                unreachable!()
+            };
+            unwrapped[end_idx].0 - unwrapped[start_idx].0
+        } else {
+            let unwrapped = if let PowerVec::Variable(unwrapped) = shelly_power_2 {
+                unwrapped
+            } else {
+                unreachable!()
+            };
+            unwrapped[unwrapped.len() - 1].0 - unwrapped[0].0
+        };
+
         println!(
             "
         Oscilloscope Energy:                                       {osc_energy:.2} Joule\t Max: {osc_max:.2}\t Min: {osc_min:.2}
         Firmware Energy (Estimated voltage from calculated curve): {firmware_energy:.2} Joule\t Max: {firmware_max:.2}\t Min: {firmware_min:.2}
         Jetson Energy:                                             {jetson_energy:.2} Joule\t Max: {jetson_max:.2}\t Min: {jetson_min:.2}
         Shelly Energy:                                             {shelly_energy_2:.2} Joule\t Max: {shelly_max:.2}\t Min: {shelly_min:.2}
-        "
+
+        Oscilloscope Duration:                                     {osc_duration:.2} Seconds
+        Firmware Duration:                                         {firmware_duration:.2} Seconds
+        Jetson Duration:                                           {jetson_duration:.2} Seconds
+        Shelly Duration:                                           {shelly_duration:.2} Seconds
+        ",
         );
     }
 
@@ -166,7 +286,21 @@ fn main() -> std::io::Result<()> {
             )?
             .getattr("main")?
             .into();
-            script.call1(py, (actual_firmware_samplerate, osc_prefs.samplerate))
+            if args.dont_cut {
+                script.call1(
+                    py,
+                    (
+                        2000.,
+                        osc_prefs.samplerate,
+                        firmware_idx.unwrap(),
+                        osc_idx.unwrap(),
+                        jetson_idx.unwrap(),
+                        shelly_idx.unwrap(),
+                    ),
+                )
+            } else {
+                script.call1(py, (2000., osc_prefs.samplerate))
+            }
         });
         match from_python {
             Ok(_) => {}

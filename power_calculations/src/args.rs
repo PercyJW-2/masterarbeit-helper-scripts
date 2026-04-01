@@ -134,6 +134,12 @@ pub(crate) struct Args {
     /// plot final power
     #[bpaf(short, long)]
     pub(crate) plot: bool,
+    /// plot intermediates
+    #[bpaf(short('i'), long)]
+    pub(crate) plot_intermediates: bool,
+    /// per default the data is cut, enable this to output each start and end location instead
+    #[bpaf(short('c'), long)]
+    pub(crate) dont_cut: bool,
     /// Settings for firmware measurements
     #[bpaf(external)]
     pub(crate) firmware_enum: FirmwareEnum,

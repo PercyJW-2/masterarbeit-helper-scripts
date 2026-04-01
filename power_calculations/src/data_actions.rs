@@ -1,4 +1,4 @@
-use crate::data_reading_types::{PowerSample, PowerVec};
+use crate::data_reading_types::{PowerSample, PowerVec, WindowEnergyIter};
 use biquad::{Biquad, Coefficients, DirectForm1, Q_BUTTERWORTH_F64, ToHertz};
 use matplotlib as plt;
 use npyz::WriterBuilder;
@@ -73,7 +73,20 @@ impl Side {
             .plot();
             plt::show();
         }
+        println!("Index of Trigger-Point: {}", stop_idx.unwrap());
         stop_idx.unwrap_or(0)
+    }
+
+    fn iterations_until_trigger(
+        &self,
+        data: WindowEnergyIter,
+        trigger_value: f64,
+        plot: bool,
+    ) -> usize {
+        match self {
+            Self::Start => Self::cut_calculation_power(data, trigger_value, plot),
+            Self::End => Self::cut_calculation_power(data.rev(), trigger_value, plot),
+        }
     }
 
     fn cut_on_side(
@@ -84,18 +97,11 @@ impl Side {
         window_size: f64,
         plot: bool,
     ) -> PowerVec {
-        let iterations = match self {
-            Self::Start => Self::cut_calculation_power(
-                data.power_window_iter(window_size, samplerate_opt),
-                trigger_value,
-                plot,
-            ),
-            Self::End => Self::cut_calculation_power(
-                data.power_window_iter(window_size, samplerate_opt).rev(),
-                trigger_value,
-                plot,
-            ),
-        };
+        let iterations = self.iterations_until_trigger(
+            data.power_window_iter(window_size, samplerate_opt),
+            trigger_value,
+            plot,
+        );
         println!("Elements to remove: {iterations}");
         match self {
             Self::Start => {
@@ -117,30 +123,66 @@ impl Side {
 pub(crate) fn cut_data_start_and_end(
     mut data: PowerVec,
     trigger_factor: f64,
-    pred_max: Option<f64>,
-    pred_min: Option<f64>,
+    pred_max_min: Option<(f64, f64)>,
     window_size: f64,
     samplerate_opt: Option<f64>,
     data_name: &'static str,
+    plot: bool,
 ) -> (PowerVec, f64, f64) {
     println!("Starting data cutting of {data_name}");
-    let (max, idle_start, idle_end) = if let Some(p_max) = pred_max
-        && let Some(p_min) = pred_min
-    {
-        (p_max, p_min, p_min)
+    let (max, idle_value) = if let Some((p_max, p_min)) = pred_max_min {
+        (p_max, p_min)
     } else {
         println!("Searching maximum and idle values");
         data.power_window_iter(window_size, samplerate_opt)
-            .max_and_idle_start_end()
+            .max_and_idle()
     };
-    let trigger_value_start = (max - idle_start) * trigger_factor + idle_start;
-    let trigger_value_end = (max - idle_end) * trigger_factor + idle_end;
-    println!("Trigger value: {trigger_value_start}\t{trigger_value_end}");
+    let trigger_value = (max - idle_value) * trigger_factor + idle_value;
+    println!("Trigger value: {trigger_value}");
     println!("Cutting on start");
-    data = Side::Start.cut_on_side(data, samplerate_opt, trigger_value_start, window_size, true);
+    data = Side::Start.cut_on_side(data, samplerate_opt, trigger_value, window_size, plot);
     println!("Cutting on end");
-    data = Side::End.cut_on_side(data, samplerate_opt, trigger_value_end, window_size, true);
-    (data, max, trigger_value_end)
+    data = Side::End.cut_on_side(data, samplerate_opt, trigger_value, window_size, plot);
+    (data, max, trigger_value)
+}
+
+/// Finds start and end of measurement, either self-determines idle and max values or uses the
+/// provided values.
+/// Returns Tuple: (start_idx, end_idx, max_value, idle_value)
+pub(crate) fn find_data_start_and_end(
+    data: &PowerVec,
+    trigger_factor: f64,
+    pred_max_min: Option<(f64, f64)>,
+    window_size: f64,
+    samplerate_opt: Option<f64>,
+    data_name: &'static str,
+    plot: bool,
+) -> (usize, usize, f64, f64) {
+    println!("Starting search for {data_name}");
+    let (max, idle_value) = if let Some((p_max, p_min)) = pred_max_min {
+        (p_max, p_min)
+    } else {
+        println!("Searching maximum and idle values");
+        data.power_window_iter(window_size, samplerate_opt)
+            .max_and_idle()
+    };
+    let trigger_value = (max - idle_value) * trigger_factor + idle_value;
+    println!("Trigger value: {trigger_value}");
+    println!("Searching on start");
+    let start_idx = Side::Start.iterations_until_trigger(
+        data.power_window_iter(window_size, samplerate_opt),
+        trigger_value,
+        plot,
+    );
+    println!("Searching on end");
+    let end_idx = data.len()
+        - 1
+        - Side::End.iterations_until_trigger(
+            data.power_window_iter(window_size, samplerate_opt),
+            trigger_value,
+            plot,
+        );
+    (start_idx, end_idx, max, idle_value)
 }
 
 pub(crate) fn calc_energy(data: &PowerVec, samplerate_opt: Option<f64>) -> f64 {

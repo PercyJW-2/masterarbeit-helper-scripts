@@ -1,7 +1,4 @@
-use std::{
-    collections::{VecDeque, vec_deque::Iter},
-    iter::{Enumerate, Peekable},
-};
+use std::collections::{VecDeque, vec_deque::Iter};
 
 use serde::Deserialize;
 
@@ -188,6 +185,7 @@ impl<'a> ExactSizeIterator for PowerIter<'a> {
     }
 }
 
+#[derive(Clone)]
 pub(crate) enum PowerSample {
     Constant(Power),
     Variable(Timestamp, Power),
@@ -198,6 +196,8 @@ pub(crate) struct WindowEnergyIter<'a> {
     frame_size: f64,
     samplerate: f64,
     overshoot: f64,
+    overshoot_time: f64,
+    last_sample: Option<PowerSample>,
     frame_queue: VecDeque<(usize, f64)>,
     duration: f64,
 }
@@ -219,12 +219,14 @@ impl<'a> WindowEnergyIter<'a> {
             frame_size,
             samplerate: samplerate_opt.unwrap_or(0.0),
             overshoot: 0.0,
+            overshoot_time: 0.0,
+            last_sample: None,
             frame_queue: VecDeque::new(),
             duration,
         }
     }
 
-    pub(crate) fn max_and_idle_start_end(self) -> (f64, f64, f64) {
+    pub(crate) fn max_and_idle(self) -> (f64, f64) {
         let mut current_max = 0.;
         let mut idle_start = 0.;
         let mut idle_end = 0.;
@@ -246,11 +248,11 @@ impl<'a> WindowEnergyIter<'a> {
 
         (
             current_max,
-            idle_start / idle_frames,
-            idle_end / idle_frames,
+            (idle_start / idle_frames).max(idle_end / idle_frames),
         )
     }
 
+    #[allow(dead_code)]
     pub(crate) fn mad(self) -> f64 {
         fn median(data: &mut [f64]) -> f64 {
             data.sort_unstable_by(|a, b| a.total_cmp(b));
@@ -275,23 +277,25 @@ impl<'a> WindowEnergyIter<'a> {
             return self.frame_queue.pop_back();
         }
 
-        let mut frame_pos = 0.0;
+        let mut frame_pos = self.overshoot_time;
         let mut last_power;
         let mut last_time = 0.0;
 
-        let fst_smple_opt = if reverse {
-            self.data.next_back()
-        } else {
-            self.data.next()
-        };
-        if let Some(fst_sample) = fst_smple_opt {
+        if self.last_sample.is_none() {
+            self.last_sample = if reverse {
+                self.data.next_back()
+            } else {
+                self.data.next()
+            };
+        }
+        if let Some(fst_sample) = &self.last_sample {
             match fst_sample {
                 PowerSample::Constant(power) => {
-                    last_power = power;
+                    last_power = *power;
                 }
                 PowerSample::Variable(time, power) => {
-                    last_time = time;
-                    last_power = power;
+                    last_time = *time;
+                    last_power = *power;
                 }
             }
         } else {
@@ -306,6 +310,7 @@ impl<'a> WindowEnergyIter<'a> {
             } else {
                 self.data.next()
             };
+            self.last_sample = next_sample_opt.clone();
             if let Some(next_sample) = next_sample_opt {
                 let (current_power, time_diff) = match next_sample {
                     PowerSample::Constant(power) => (power, 1. / self.samplerate),
@@ -331,6 +336,7 @@ impl<'a> WindowEnergyIter<'a> {
                         rem_time_diff -= self.frame_size;
                     }
                     self.overshoot = current_energy * (rem_time_diff / time_diff);
+                    self.overshoot_time = rem_time_diff;
                     return self.frame_queue.pop_back();
                 } else {
                     energy += current_energy;
