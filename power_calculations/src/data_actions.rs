@@ -73,7 +73,7 @@ impl Side {
             .plot();
             plt::show();
         }
-        println!("Index of Trigger-Point: {}", stop_idx.unwrap());
+        println!("Index of Trigger-Point: {}", stop_idx.unwrap_or(0));
         stop_idx.unwrap_or(0)
     }
 
@@ -185,8 +185,8 @@ pub(crate) fn find_data_start_and_end(
     (start_idx, end_idx, max, idle_value)
 }
 
-pub(crate) fn calc_energy(data: &PowerVec, samplerate_opt: Option<f64>) -> f64 {
-    let mut data_iter = data.iter();
+pub(crate) fn calc_energy(data: &PowerVec, samplerate_opt: Option<f64>, start_end_idx: Option<(usize, usize)>) -> f64 {
+    let mut data_iter = data.iter(start_end_idx);
     let first_elem = data_iter.next().unwrap();
     let samplerate = samplerate_opt.unwrap_or(0.0);
     if let PowerSample::Constant(_) = first_elem

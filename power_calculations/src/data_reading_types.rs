@@ -1,24 +1,18 @@
 use std::collections::{VecDeque, vec_deque::Iter};
 
-use serde::Deserialize;
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "PascalCase")]
 pub(crate) struct JetsonMeasurement {
     /// Unit in microseconds
-    pub(crate) measurement_timestamp: u128,
+    pub(crate) measurement_timestamp: u64,
     /// Unit in milliamps
     pub(crate) current: u32,
     /// Unit in millivolts
     pub(crate) voltage: u32,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "PascalCase")]
 #[allow(dead_code)]
 pub(crate) struct ShellyPlug {
     /// Unit in microseconds
-    pub(crate) measurement_timestamp: u128,
+    pub(crate) measurement_timestamp: u64,
     /// Unit in volts
     pub(crate) voltage: f64,
     /// Unit in amps
@@ -27,8 +21,6 @@ pub(crate) struct ShellyPlug {
     pub(crate) power: f64,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "PascalCase")]
 pub(crate) struct FirmwareMeasruement {
     #[allow(dead_code)]
     pub(crate) measurement_index: u16,
@@ -36,8 +28,6 @@ pub(crate) struct FirmwareMeasruement {
     pub(crate) current: u16,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "PascalCase")]
 #[allow(dead_code)]
 pub(crate) struct PicoMeasurement {
     /// Unit in volts
@@ -89,8 +79,8 @@ impl PowerVec {
         }
     }
 
-    pub(crate) fn iter(&self) -> PowerIter<'_> {
-        PowerIter::new(self)
+    pub(crate) fn iter(&self, start_stop_idx: Option<(usize, usize)>) -> PowerIter<'_> {
+        PowerIter::new(self, start_stop_idx)
     }
 
     pub(crate) fn power_window_iter(
@@ -117,14 +107,19 @@ pub(crate) struct PowerIter<'a> {
 }
 
 impl<'a> PowerIter<'a> {
-    fn new(data: &'a PowerVec) -> Self {
+    fn new(data: &'a PowerVec, start_stop_idx: Option<(usize, usize)>) -> Self {
+        let (start, stop) = if let Some(start_stop_idx) = start_stop_idx {
+            start_stop_idx
+        } else {
+            (0, data.len()-1)
+        };
         let const_iter = if let PowerVec::Constant(raw_data) = data {
-            Some(raw_data.iter())
+            Some(raw_data.range(start..stop+1))
         } else {
             None
         };
         let var_iter = if let PowerVec::Variable(raw_data) = data {
-            Some(raw_data.iter())
+            Some(raw_data.range(start..stop+1))
         } else {
             None
         };
@@ -215,7 +210,7 @@ impl<'a> WindowEnergyIter<'a> {
             unreachable!();
         }
         Self {
-            data: data.iter(),
+            data: data.iter(None),
             frame_size,
             samplerate: samplerate_opt.unwrap_or(0.0),
             overshoot: 0.0,

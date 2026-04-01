@@ -1,12 +1,13 @@
 use crate::data_reading_types::*;
-use csv::{Reader, StringRecord};
 use std::{
     collections::VecDeque,
     fs::{File, metadata},
     path::PathBuf,
 };
 
-use indicatif::{ProgressBar, ProgressState, ProgressStyle};
+use indicatif::{ProgressBar, ProgressIterator, ProgressState, ProgressStyle};
+use parquet::file::reader::{FileReader, SerializedFileReader};
+use parquet::record::{Field, Row};
 
 pub(crate) fn get_file_len(path: PathBuf) -> u64 {
     let file_metadata = metadata(path).expect("Could not open File");
@@ -16,12 +17,13 @@ pub(crate) fn get_file_len(path: PathBuf) -> u64 {
 pub(crate) fn init_reader(
     filename: &str,
     root_path: PathBuf,
-) -> std::io::Result<(u64, Reader<File>)> {
+) -> std::io::Result<(u64, SerializedFileReader<File>)> {
     let mut filepath = root_path;
     filepath.push(filename);
     let file_len = get_file_len(filepath.clone());
-    let csv_reader = Reader::from_path(filepath.clone())?;
-    Ok((file_len, csv_reader))
+    let file = File::open(filepath)?;
+    let reader = SerializedFileReader::new(file)?;
+    Ok((file_len, reader))
 }
 
 pub(crate) fn get_pb_style() -> ProgressStyle {
@@ -34,9 +36,8 @@ pub(crate) fn get_pb_style() -> ProgressStyle {
 /// Reads file and directly calculates power for current sample
 pub(crate) fn read_to_power_vector(
     file_len: u64,
-    mut file_reader: Reader<File>,
-    update_interval: u32,
-    entry_handler: impl Fn(StringRecord) -> std::io::Result<PowerSample>,
+    file_reader: SerializedFileReader<File>,
+    entry_handler: impl Fn(Row) -> std::io::Result<PowerSample>,
 ) -> std::io::Result<PowerVec> {
     let pb_style = get_pb_style();
     let pb = ProgressBar::new(file_len);
@@ -45,19 +46,8 @@ pub(crate) fn read_to_power_vector(
     let mut values_const = VecDeque::new();
     let mut values_varia = VecDeque::new();
 
-    let mut last_pb_update = 0;
-
-    for read_res in file_reader.records() {
-        let str_record = read_res?;
-
-        if last_pb_update == update_interval {
-            pb.set_position(str_record.position().unwrap().byte());
-            last_pb_update = 0;
-        } else {
-            last_pb_update += 1;
-        }
-
-        let entry = entry_handler(str_record)?;
+    for row in file_reader.get_row_iter(None)?.progress_with(pb) {
+        let entry = entry_handler(row?)?;
         match entry {
             PowerSample::Constant(value) => values_const.push_back(value),
             PowerSample::Variable(tstmp, value) => values_varia.push_back((tstmp, value)),
@@ -68,5 +58,40 @@ pub(crate) fn read_to_power_vector(
         Ok(PowerVec::Constant(values_const))
     } else {
         Ok(PowerVec::Variable(values_varia))
+    }
+}
+
+pub(crate) fn field_to_u64(field: &Field) -> Option<u64> {
+    match field {
+        Field::ULong(value) => Some(*value),
+        _ => None,
+    }
+}
+
+pub(crate) fn field_to_f64(field: &Field) -> Option<f64> {
+    match field {
+        Field::Double(value) => Some(*value),
+        _ => None,
+    }
+}
+
+pub(crate) fn field_to_u32(field: &Field) -> Option<u32> {
+    match field {
+        Field::UInt(value) => Some(*value),
+        _ => None,
+    }
+}
+
+pub(crate) fn field_to_f32(field: &Field) -> Option<f32> {
+    match field {
+        Field::Float(value) => Some(*value),
+        _ => None,
+    }
+}
+
+pub(crate) fn field_to_u16(field: &Field) -> Option<u16> {
+    match field {
+        Field::UShort(value) => Some(*value),
+        _ => None,
     }
 }

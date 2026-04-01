@@ -24,16 +24,21 @@ fn main() -> std::io::Result<()> {
     let mut firmware_idx: Option<(usize, usize)> = None;
     {
         let (jetson_len, jetson_reader) =
-            init_reader("jetson.csv", args.measurement_location.clone())?;
+            init_reader("jetson.parquet", args.measurement_location.clone())?;
         let (shelly_len_2, shelly_reader_2) =
-            init_reader("shellyPlug.csv", args.measurement_location.clone())?;
+            init_reader("shellyPlug.parquet", args.measurement_location.clone())?;
         let (firmware_len, firmware_reader) =
-            init_reader("fast_firmware.csv", args.measurement_location.clone())?;
+            init_reader("fast_firmware.parquet", args.measurement_location.clone())?;
         let (pico_len, pico_reader) =
-            init_reader("usb_osc_data.csv", args.measurement_location.clone())?;
+            init_reader("usb_osc_data.parquet", args.measurement_location.clone())?;
 
-        let mut jetson_power = read_to_power_vector(jetson_len, jetson_reader, 1, |str_record| {
-            let jetson_measurement: JetsonMeasurement = str_record.deserialize(None)?;
+        let mut jetson_power = read_to_power_vector(jetson_len, jetson_reader, |raw_row| {
+            let cols = raw_row.into_columns();
+            let jetson_measurement = JetsonMeasurement {
+                measurement_timestamp: field_to_u64(&cols[0].1).expect("Could not parse Field"),
+                current: field_to_u32(&cols[1].1).expect("Could not parse Field"),
+                voltage: field_to_u32(&cols[2].1).expect("Could not parse Field"),
+            };
             let current_power = (jetson_measurement.current as f64 / 1000.)
                 * (jetson_measurement.voltage as f64 / 1000.);
             Ok(PowerSample::Variable(
@@ -41,7 +46,7 @@ fn main() -> std::io::Result<()> {
                 current_power,
             ))
         })?;
-        const JETSON_TRIGGER_FACTOR: f64 = 0.2;
+        const JETSON_TRIGGER_FACTOR: f64 = 0.1;
         let (jetson_max, jetson_min);
         if args.dont_cut {
             let (jetson_start_idx, jetson_end_idx);
@@ -71,11 +76,17 @@ fn main() -> std::io::Result<()> {
             );
         }
         save_vec_to_npy(&jetson_power, "jetson.npy")?;
-        let jetson_energy = calc_energy(&jetson_power, None);
+        let jetson_energy = calc_energy(&jetson_power, None, jetson_idx);
 
         let mut shelly_power_2 =
-            read_to_power_vector(shelly_len_2, shelly_reader_2, 1, |str_record| {
-                let shelly_measurement: ShellyPlug = str_record.deserialize(None)?;
+            read_to_power_vector(shelly_len_2, shelly_reader_2, |raw_row| {
+                let cols = raw_row.into_columns();
+                let shelly_measurement = ShellyPlug {
+                    measurement_timestamp: field_to_u64(&cols[0].1).expect("Could not parse Field"),
+                    voltage: field_to_f32(&cols[1].1).expect("Could not parse Field").into(),
+                    current: field_to_f32(&cols[2].1).expect("Could not parse Field").into(),
+                    power: field_to_f32(&cols[3].1).expect("Could not parse Field").into(),
+                };
                 // apply calibration
                 let mut power = shelly_measurement.power - 40.40749136;
                 power *= 0.796818078;
@@ -114,10 +125,14 @@ fn main() -> std::io::Result<()> {
             );
         }
         save_vec_to_npy(&shelly_power_2, "shelly.npy")?;
-        let shelly_energy_2 = calc_energy(&shelly_power_2, None);
+        let shelly_energy_2 = calc_energy(&shelly_power_2, None, shelly_idx);
 
-        let mut osc_power = read_to_power_vector(pico_len, pico_reader, 100_000, |str_record| {
-            let pico_measurement: PicoMeasurement = str_record.deserialize(None)?;
+        let mut osc_power = read_to_power_vector(pico_len, pico_reader, |raw_row| {
+            let cols = raw_row.into_columns();
+            let pico_measurement = PicoMeasurement {
+                voltage: field_to_f64(&cols[0].1).expect("Could not parse Field"),
+                current: field_to_f64(&cols[1].1).expect("Could not parse Field"),
+            };
             let current = match osc_prefs.measurement_type {
                 OscilloscopeMsmtType::UCurrent => {
                     (pico_measurement.current + 0.003326916) * 0.998687605682019
@@ -163,11 +178,15 @@ fn main() -> std::io::Result<()> {
             );
         }
         save_vec_to_npy(&osc_power, "oscilloscope.npy")?;
-        let osc_energy = calc_energy(&osc_power, Some(osc_samplerate));
+        let osc_energy = calc_energy(&osc_power, Some(osc_samplerate), osc_idx);
 
         let mut firmware_power =
-            read_to_power_vector(firmware_len, firmware_reader, 1, |str_record| {
-                let firmware_measurement: FirmwareMeasruement = str_record.deserialize(None)?;
+            read_to_power_vector(firmware_len, firmware_reader, |raw_row| {
+                let cols = raw_row.into_columns();
+                let firmware_measurement = FirmwareMeasruement {
+                    measurement_index: field_to_u16(&cols[0].1).expect("Could not parse Field"),
+                    current: field_to_u16(&cols[1].1).expect("Could not parse Field"),
+                };
                 // apply calibration
                 let current_current = ((firmware_measurement.current as f64 / 1000.) + 0.004704622)
                     * 0.997224237630222;
@@ -214,7 +233,7 @@ fn main() -> std::io::Result<()> {
 
         save_vec_to_npy(&firmware_power, "firmware_power.npy")?;
 
-        let firmware_energy = calc_energy(&firmware_power, Some(2000.));
+        let firmware_energy = calc_energy(&firmware_power, Some(2000.), firmware_idx);
 
         let osc_duration = if let Some((start_idx, end_idx)) = osc_idx {
             ((end_idx - start_idx) + 1) as f64 / osc_samplerate
