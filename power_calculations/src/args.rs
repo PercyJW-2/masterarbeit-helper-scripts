@@ -1,5 +1,6 @@
 use bpaf::Bpaf;
 use std::{fmt::Display, path::PathBuf, str::FromStr};
+use serde::Serialize;
 
 const DEFAULT_THRESHOLD: f64 = 1. / 10.;
 
@@ -23,7 +24,7 @@ pub(crate) enum FirmwareEnum {
     Firmware(#[bpaf(external(firmware))] Firmware),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub(crate) enum OscilloscopeMsmtType {
     UCurrent,
     CurrentRanger,
@@ -124,7 +125,6 @@ pub(crate) enum JetsonEnum {
     #[bpaf(command, adjacent)]
     Jetson(#[bpaf(external(jetson))] Jetson),
 }
-
 #[derive(Debug, Clone, Bpaf)]
 #[bpaf(options, version)]
 pub(crate) struct Args {
@@ -140,16 +140,22 @@ pub(crate) struct Args {
     /// per default the data is cut, enable this to output each start and end location instead
     #[bpaf(short('c'), long)]
     pub(crate) dont_cut: bool,
+    /// Output Path location where all data and results are stored
+    #[bpaf(short, long, fallback(PathBuf::from("./")), display_fallback)]
+    pub(crate) output_path: PathBuf,
+    /// store results in results.yaml file
+    #[bpaf(short, long)]
+    pub(crate) results_storage: bool,
     /// Settings for firmware measurements
     #[bpaf(external)]
-    pub(crate) firmware_enum: FirmwareEnum,
+    pub(crate) firmware_enum: Option<FirmwareEnum>,
     /// Settings for oscilloscope measurements
     #[bpaf(external)]
-    pub(crate) oscilloscope_enum: OscilloscopeEnum,
+    pub(crate) oscilloscope_enum: Option<OscilloscopeEnum>,
     /// Settings for shelly measurements
     #[bpaf(external)]
-    pub(crate) shelly_enum: ShellyEnum,
+    pub(crate) shelly_enum: Option<ShellyEnum>,
     /// Settings for jetson measurements
     #[bpaf(external)]
-    pub(crate) jetson_enum: JetsonEnum,
+    pub(crate) jetson_enum: Option<JetsonEnum>,
 }

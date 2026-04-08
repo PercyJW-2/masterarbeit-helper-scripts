@@ -6,6 +6,7 @@ use std::{
     fs::File,
     io::{BufWriter, Result},
 };
+use std::path::PathBuf;
 
 pub(crate) fn filter_data(
     mut data: PowerVec,
@@ -235,8 +236,8 @@ pub(crate) fn estimate_voltage_from_current(current: f64) -> f64 {
     lower_voltage_val + current_voltage_diff * range_percentage*/
 }
 
-pub(crate) fn save_vec_to_npy(data: &PowerVec, filename: &'static str) -> Result<()> {
-    let buf_wtr = BufWriter::new(File::create(filename)?);
+pub(crate) fn save_vec_to_npy(data: &PowerVec, location: PathBuf, filename: &'static str) -> Result<()> {
+    let buf_wtr = BufWriter::new(File::create(location.join(filename))?);
     match data {
         PowerVec::Constant(constant_data) => {
             let mut npy_wtr = npyz::WriteOptions::new()

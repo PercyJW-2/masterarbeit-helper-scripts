@@ -15,10 +15,10 @@ if __name__ == "__main__":
     osc_idx = np.arange(start=0, stop=pico_data.shape[0]) * (1 / 5000000)
     firm_idx = np.arange(start=0, stop=firmware_data.shape[0]) * (1 / 2000)
 
-    plt.plot(firm_idx, firmware_data["current"], label="firmware")
     plt.plot(osc_idx, pico_data["current"], label="osc")
+    plt.plot(firm_idx, firmware_data["current"] / 1000, label="firmware")
 
-    plt.legend()
+    plt.legend(loc="lower center")
     plt.xlabel("seconds")
     plt.ylabel("amp (not calibrated)")
     plt.show()

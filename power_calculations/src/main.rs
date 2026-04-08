@@ -2,36 +2,59 @@ mod args;
 mod data_actions;
 mod data_reading;
 mod data_reading_types;
+mod output_types;
 
+use std::{fs, io};
 use pyo3::prelude::*;
 
 use crate::args::*;
 use crate::data_actions::*;
 use crate::data_reading::*;
 use crate::data_reading_types::*;
+use crate::output_types::{OscilloscopeResults, Output, Results};
 
 fn main() -> std::io::Result<()> {
     let args = args().run();
 
-    let FirmwareEnum::Firmware(firmware_prefs) = args.firmware_enum;
-    let OscilloscopeEnum::Oscilloscope(osc_prefs) = args.oscilloscope_enum;
-    let ShellyEnum::Shelly(shelly_prefs) = args.shelly_enum;
-    let JetsonEnum::Jetson(jetson_prefs) = args.jetson_enum;
+    let firmware_prefs = if let Some(firmware_pref_enum) = args.firmware_enum {
+        let FirmwareEnum::Firmware(prefs) = firmware_pref_enum;
+        Some(prefs)
+    } else {
+        None
+    };
+    let osc_prefs = if let Some(osc_pref_enum) = args.oscilloscope_enum {
+        let OscilloscopeEnum::Oscilloscope(prefs) = osc_pref_enum;
+        Some(prefs)
+    } else {
+        None
+    };
+    let shelly_prefs = if let Some(shelly_pref_enum) = args.shelly_enum {
+        let ShellyEnum::Shelly(prefs) = shelly_pref_enum;
+        Some(prefs)
+    } else {
+        None
+    };
+    let jetson_prefs = if let Some(jetson_pref_enum) = args.jetson_enum {
+        let JetsonEnum::Jetson(prefs) = jetson_pref_enum;
+        Some(prefs)
+    } else {
+        None
+    };
 
     let mut jetson_idx: Option<(usize, usize)> = None;
     let mut shelly_idx: Option<(usize, usize)> = None;
     let mut osc_idx: Option<(usize, usize)> = None;
     let mut firmware_idx: Option<(usize, usize)> = None;
-    {
-        let (jetson_len, jetson_reader) =
-            init_reader("jetson.parquet", args.measurement_location.clone())?;
-        let (shelly_len_2, shelly_reader_2) =
-            init_reader("shellyPlug.parquet", args.measurement_location.clone())?;
-        let (firmware_len, firmware_reader) =
-            init_reader("fast_firmware.parquet", args.measurement_location.clone())?;
-        let (pico_len, pico_reader) =
-            init_reader("usb_osc_data.parquet", args.measurement_location.clone())?;
+    let (jetson_len, jetson_reader) =
+        init_reader("jetson.parquet", args.measurement_location.clone())?;
+    let (shelly_len_2, shelly_reader_2) =
+        init_reader("shellyPlug.parquet", args.measurement_location.clone())?;
+    let (firmware_len, firmware_reader) =
+        init_reader("fast_firmware.parquet", args.measurement_location.clone())?;
+    let (pico_len, pico_reader) =
+        init_reader("usb_osc_data.parquet", args.measurement_location.clone())?;
 
+    let jetson_results = if let Some(jetson_prefs) = &jetson_prefs {
         let mut jetson_power = read_to_power_vector(jetson_len, jetson_reader, |raw_row| {
             let cols = raw_row.into_columns();
             let jetson_measurement = JetsonMeasurement {
@@ -75,32 +98,59 @@ fn main() -> std::io::Result<()> {
                 args.plot_intermediates,
             );
         }
-        save_vec_to_npy(&jetson_power, "jetson.npy")?;
+        save_vec_to_npy(&jetson_power, args.output_path.clone(), "jetson.npy")?;
         let jetson_energy = calc_energy(&jetson_power, None, jetson_idx);
 
-        let mut shelly_power_2 =
-            read_to_power_vector(shelly_len_2, shelly_reader_2, |raw_row| {
-                let cols = raw_row.into_columns();
-                let shelly_measurement = ShellyPlug {
-                    measurement_timestamp: field_to_u64(&cols[0].1).expect("Could not parse Field"),
-                    voltage: field_to_f32(&cols[1].1).expect("Could not parse Field").into(),
-                    current: field_to_f32(&cols[2].1).expect("Could not parse Field").into(),
-                    power: field_to_f32(&cols[3].1).expect("Could not parse Field").into(),
-                };
-                // apply calibration
-                let mut power = shelly_measurement.power - 40.40749136;
-                power *= 0.796818078;
-                Ok(PowerSample::Variable(
-                    shelly_measurement.measurement_timestamp as f64 / 1_000_000.,
-                    power,
-                ))
-            })?;
+        let jetson_duration = if let Some((start_idx, end_idx)) = jetson_idx {
+            let unwrapped = if let PowerVec::Variable(unwrapped) = jetson_power {
+                unwrapped
+            } else {
+                unreachable!()
+            };
+            unwrapped[end_idx].0 - unwrapped[start_idx].0
+        } else {
+            let unwrapped = if let PowerVec::Variable(unwrapped) = jetson_power {
+                unwrapped
+            } else {
+                unreachable!()
+            };
+            unwrapped[unwrapped.len() - 1].0 - unwrapped[0].0
+        };
+
+        Some((jetson_energy, jetson_duration))
+    } else {
+        None
+    };
+
+    let shelly_results = if let Some(shelly_prefs) = &shelly_prefs {
+        let mut shelly_power = read_to_power_vector(shelly_len_2, shelly_reader_2, |raw_row| {
+            let cols = raw_row.into_columns();
+            let shelly_measurement = ShellyPlug {
+                measurement_timestamp: field_to_u64(&cols[0].1).expect("Could not parse Field"),
+                voltage: field_to_f32(&cols[1].1)
+                    .expect("Could not parse Field")
+                    .into(),
+                current: field_to_f32(&cols[2].1)
+                    .expect("Could not parse Field")
+                    .into(),
+                power: field_to_f32(&cols[3].1)
+                    .expect("Could not parse Field")
+                    .into(),
+            };
+            // apply calibration
+            let mut power = shelly_measurement.power - 40.40749136;
+            power *= 0.796818078;
+            Ok(PowerSample::Variable(
+                shelly_measurement.measurement_timestamp as f64 / 1_000_000.,
+                power,
+            ))
+        })?;
         const SHELLY_TRIGGER_FACTOR: f64 = 0.05;
         let (shelly_max, shelly_min);
         if args.dont_cut {
             let (shelly_start_idx, shelly_end_idx);
             (shelly_start_idx, shelly_end_idx, shelly_max, shelly_min) = find_data_start_and_end(
-                &shelly_power_2,
+                &shelly_power,
                 SHELLY_TRIGGER_FACTOR,
                 shelly_prefs
                     .predicted_maximum
@@ -112,8 +162,8 @@ fn main() -> std::io::Result<()> {
             );
             shelly_idx = Some((shelly_start_idx, shelly_end_idx));
         } else {
-            (shelly_power_2, shelly_max, shelly_min) = cut_data_start_and_end(
-                shelly_power_2,
+            (shelly_power, shelly_max, shelly_min) = cut_data_start_and_end(
+                shelly_power,
                 SHELLY_TRIGGER_FACTOR,
                 shelly_prefs
                     .predicted_maximum
@@ -124,9 +174,29 @@ fn main() -> std::io::Result<()> {
                 args.plot_intermediates,
             );
         }
-        save_vec_to_npy(&shelly_power_2, "shelly.npy")?;
-        let shelly_energy_2 = calc_energy(&shelly_power_2, None, shelly_idx);
+        save_vec_to_npy(&shelly_power, args.output_path.clone(), "shelly.npy")?;
+        let shelly_energy = calc_energy(&shelly_power, None, shelly_idx);
+        let shelly_duration = if let Some((start_idx, end_idx)) = shelly_idx {
+            let unwrapped = if let PowerVec::Variable(unwrapped) = shelly_power {
+                unwrapped
+            } else {
+                unreachable!()
+            };
+            unwrapped[end_idx].0 - unwrapped[start_idx].0
+        } else {
+            let unwrapped = if let PowerVec::Variable(unwrapped) = shelly_power {
+                unwrapped
+            } else {
+                unreachable!()
+            };
+            unwrapped[unwrapped.len() - 1].0 - unwrapped[0].0
+        };
+        Some((shelly_energy, shelly_duration))
+    } else {
+        None
+    };
 
+    let osc_results = if let Some(osc_prefs) = &osc_prefs {
         let mut osc_power = read_to_power_vector(pico_len, pico_reader, |raw_row| {
             let cols = raw_row.into_columns();
             let pico_measurement = PicoMeasurement {
@@ -177,23 +247,32 @@ fn main() -> std::io::Result<()> {
                 args.plot_intermediates,
             );
         }
-        save_vec_to_npy(&osc_power, "oscilloscope.npy")?;
+        save_vec_to_npy(&osc_power, args.output_path.clone(), "oscilloscope.npy")?;
         let osc_energy = calc_energy(&osc_power, Some(osc_samplerate), osc_idx);
+        let osc_duration = if let Some((start_idx, end_idx)) = osc_idx {
+            ((end_idx - start_idx) + 1) as f64 / osc_samplerate
+        } else {
+            osc_power.len() as f64 / osc_samplerate
+        };
+        Some((osc_energy, osc_duration))
+    } else {
+        None
+    };
 
-        let mut firmware_power =
-            read_to_power_vector(firmware_len, firmware_reader, |raw_row| {
-                let cols = raw_row.into_columns();
-                let firmware_measurement = FirmwareMeasruement {
-                    measurement_index: field_to_u16(&cols[0].1).expect("Could not parse Field"),
-                    current: field_to_u16(&cols[1].1).expect("Could not parse Field"),
-                };
-                // apply calibration
-                let current_current = ((firmware_measurement.current as f64 / 1000.) + 0.004704622)
-                    * 0.997224237630222;
-                let current_power =
-                    current_current * estimate_voltage_from_current(current_current * 1000.);
-                Ok(PowerSample::Constant(current_power))
-            })?;
+    let firmware_results = if let Some(firmware_prefs) = &firmware_prefs {
+        let mut firmware_power = read_to_power_vector(firmware_len, firmware_reader, |raw_row| {
+            let cols = raw_row.into_columns();
+            let firmware_measurement = FirmwareMeasruement {
+                measurement_index: field_to_u16(&cols[0].1).expect("Could not parse Field"),
+                current: field_to_u16(&cols[1].1).expect("Could not parse Field"),
+            };
+            // apply calibration
+            let current_current =
+                ((firmware_measurement.current as f64 / 1000.) + 0.004704622) * 0.997224237630222;
+            let current_power =
+                current_current * estimate_voltage_from_current(current_current * 1000.);
+            Ok(PowerSample::Constant(current_power))
+        })?;
 
         firmware_power = filter_data(firmware_power, 2000., None);
         const FIRMWARE_TRIGGER_FACTOR: f64 = 0.25;
@@ -231,64 +310,51 @@ fn main() -> std::io::Result<()> {
             );
         }
 
-        save_vec_to_npy(&firmware_power, "firmware_power.npy")?;
-
+        save_vec_to_npy(&firmware_power, args.output_path.clone(), "firmware_power.npy")?;
         let firmware_energy = calc_energy(&firmware_power, Some(2000.), firmware_idx);
-
-        let osc_duration = if let Some((start_idx, end_idx)) = osc_idx {
-            ((end_idx - start_idx) + 1) as f64 / osc_samplerate
-        } else {
-            osc_power.len() as f64 / osc_samplerate
-        };
         let firmware_duration = if let Some((start_idx, end_idx)) = firmware_idx {
             ((end_idx - start_idx) + 1) as f64 / 2000.
         } else {
             firmware_power.len() as f64 / 2000.
         };
-        let jetson_duration = if let Some((start_idx, end_idx)) = jetson_idx {
-            let unwrapped = if let PowerVec::Variable(unwrapped) = jetson_power {
-                unwrapped
-            } else {
-                unreachable!()
-            };
-            unwrapped[end_idx].0 - unwrapped[start_idx].0
-        } else {
-            let unwrapped = if let PowerVec::Variable(unwrapped) = jetson_power {
-                unwrapped
-            } else {
-                unreachable!()
-            };
-            unwrapped[unwrapped.len() - 1].0 - unwrapped[0].0
-        };
-        let shelly_duration = if let Some((start_idx, end_idx)) = shelly_idx {
-            let unwrapped = if let PowerVec::Variable(unwrapped) = shelly_power_2 {
-                unwrapped
-            } else {
-                unreachable!()
-            };
-            unwrapped[end_idx].0 - unwrapped[start_idx].0
-        } else {
-            let unwrapped = if let PowerVec::Variable(unwrapped) = shelly_power_2 {
-                unwrapped
-            } else {
-                unreachable!()
-            };
-            unwrapped[unwrapped.len() - 1].0 - unwrapped[0].0
-        };
+        Some((firmware_energy, firmware_duration))
+    } else {
+        None
+    };
 
-        println!(
-            "
-        Oscilloscope Energy:                                       {osc_energy:.2} Joule\t Max: {osc_max:.2}\t Min: {osc_min:.2}
-        Firmware Energy (Estimated voltage from calculated curve): {firmware_energy:.2} Joule\t Max: {firmware_max:.2}\t Min: {firmware_min:.2}
-        Jetson Energy:                                             {jetson_energy:.2} Joule\t Max: {jetson_max:.2}\t Min: {jetson_min:.2}
-        Shelly Energy:                                             {shelly_energy_2:.2} Joule\t Max: {shelly_max:.2}\t Min: {shelly_min:.2}
+    let results = Output {
+        jetson_results: jetson_results.map(|(energy, duration)| Results {
+            energy,
+            duration,
+            start_stop_idx: jetson_idx
+        }),
+        shelly_results: shelly_results.map(|(energy, duration)| Results {
+            energy,
+            duration,
+            start_stop_idx: shelly_idx
+        }),
+        oscilloscope_results: osc_results.map(|(energy, duration)| OscilloscopeResults {
+            results: Results {
+                energy,
+                duration,
+                start_stop_idx: osc_idx
+            },
+            sample_rate: osc_prefs.clone().unwrap().samplerate,
+            use_voltage: osc_prefs.clone().unwrap().use_voltage,
+            msmt_type: osc_prefs.unwrap().measurement_type,
+        }),
+        firmware_results: firmware_results.map(|(energy, duration)| Results {
+            energy,
+            duration,
+            start_stop_idx: firmware_idx
+        }),
+    };
 
-        Oscilloscope Duration:                                     {osc_duration:.2} Seconds
-        Firmware Duration:                                         {firmware_duration:.2} Seconds
-        Jetson Duration:                                           {jetson_duration:.2} Seconds
-        Shelly Duration:                                           {shelly_duration:.2} Seconds
-        ",
-        );
+    println!("{}", results);
+
+    if args.results_storage {
+        let serialized_results = serde_saphyr::to_string(&results).unwrap();
+        fs::write(args.output_path.clone().join("results.yaml"), serialized_results)?;
     }
 
     if args.plot {
@@ -310,15 +376,21 @@ fn main() -> std::io::Result<()> {
                     py,
                     (
                         2000.,
-                        osc_prefs.samplerate,
-                        firmware_idx.unwrap(),
-                        osc_idx.unwrap(),
-                        jetson_idx.unwrap(),
-                        shelly_idx.unwrap(),
+                        osc_prefs.map_or_else(5_000_000, |pref| pref.samplerate),
+                        firmware_idx.unwrap_or((0, 0)),
+                        osc_idx.unwrap_or((0, 0)),
+                        jetson_idx.unwrap_or((0, 0)),
+                        shelly_idx.unwrap_or((0, 0)),
                     ),
                 )
             } else {
-                script.call1(py, (2000., osc_prefs.samplerate))
+                script.call1(
+                    py,
+                    (
+                        2000.,
+                        osc_prefs.map_or_else(5_000_000, |pref| pref.samplerate),
+                    ),
+                )
             }
         });
         match from_python {
