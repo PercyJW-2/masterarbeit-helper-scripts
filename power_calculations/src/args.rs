@@ -22,6 +22,8 @@ pub(crate) struct Firmware {
 pub(crate) enum FirmwareEnum {
     #[bpaf(command, adjacent)]
     Firmware(#[bpaf(external(firmware))] Firmware),
+    #[bpaf(command)]
+    None,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -84,6 +86,8 @@ pub(crate) struct Oscilloscope {
 pub(crate) enum OscilloscopeEnum {
     #[bpaf(command, adjacent)]
     Oscilloscope(#[bpaf(external(oscilloscope))] Oscilloscope),
+    #[bpaf(command)]
+    None,
 }
 
 #[derive(Bpaf, Debug, Clone)]
@@ -104,6 +108,8 @@ pub(crate) struct Shelly {
 pub(crate) enum ShellyEnum {
     #[bpaf(command, adjacent)]
     Shelly(#[bpaf(external(shelly))] Shelly),
+    #[bpaf(command)]
+    None,
 }
 
 #[derive(Bpaf, Debug, Clone)]
@@ -124,6 +130,8 @@ pub(crate) struct Jetson {
 pub(crate) enum JetsonEnum {
     #[bpaf(command, adjacent)]
     Jetson(#[bpaf(external(jetson))] Jetson),
+    #[bpaf(command)]
+    None,
 }
 #[derive(Debug, Clone, Bpaf)]
 #[bpaf(options, version)]
@@ -140,22 +148,23 @@ pub(crate) struct Args {
     /// per default the data is cut, enable this to output each start and end location instead
     #[bpaf(short('c'), long)]
     pub(crate) dont_cut: bool,
-    /// Output Path location where all data and results are stored
-    #[bpaf(short, long, fallback(PathBuf::from("./")), display_fallback)]
+    /// Output Path location where all data and results are stored, if not provided the current
+    /// folder is used
+    #[bpaf(short, long, fallback(PathBuf::from("./")))]
     pub(crate) output_path: PathBuf,
     /// store results in results.yaml file
     #[bpaf(short, long)]
     pub(crate) results_storage: bool,
     /// Settings for firmware measurements
-    #[bpaf(external)]
-    pub(crate) firmware_enum: Option<FirmwareEnum>,
+    #[bpaf(external, fallback(FirmwareEnum::None))]
+    pub(crate) firmware_enum: FirmwareEnum,
     /// Settings for oscilloscope measurements
-    #[bpaf(external)]
-    pub(crate) oscilloscope_enum: Option<OscilloscopeEnum>,
+    #[bpaf(external, fallback(OscilloscopeEnum::None))]
+    pub(crate) oscilloscope_enum: OscilloscopeEnum,
     /// Settings for shelly measurements
-    #[bpaf(external)]
-    pub(crate) shelly_enum: Option<ShellyEnum>,
+    #[bpaf(external, fallback(ShellyEnum::None))]
+    pub(crate) shelly_enum: ShellyEnum,
     /// Settings for jetson measurements
-    #[bpaf(external)]
-    pub(crate) jetson_enum: Option<JetsonEnum>,
+    #[bpaf(external, fallback(JetsonEnum::None))]
+    pub(crate) jetson_enum: JetsonEnum,
 }

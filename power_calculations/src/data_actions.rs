@@ -7,6 +7,62 @@ use std::{
     io::{BufWriter, Result},
 };
 use std::path::PathBuf;
+use parquet::record::Row;
+use crate::args::Args;
+use crate::data_reading::{init_reader, read_to_power_vector};
+use crate::output_types::Results;
+
+pub(crate) fn calculate_results(
+    args: &Args,
+    file_name: &'static str,
+    entry_handler: impl Fn(Row) -> Result<PowerSample>,
+    do_filter: bool,
+    trigger_factor: f64,
+    pred_max_min: Option<(f64, f64)>,
+    frame_size: f64,
+    sample_rate: Option<f64>,
+    output_file_name: &'static str,
+) -> Result<Results> {
+    let (file_len, file_reader) =
+        init_reader(file_name, args.measurement_location.clone())?;
+    let mut power = read_to_power_vector(file_len, file_reader, entry_handler)?;
+    if do_filter { 
+        power = filter_data(power, sample_rate.unwrap(), None);
+    }
+    let (max, min);
+    let mut idx = None;
+    if args.dont_cut {
+        let (start_idx, end_idx);
+        (start_idx, end_idx, max, min) = find_data_start_and_end(
+            &power,
+            trigger_factor,
+            pred_max_min,
+            frame_size,
+            sample_rate,
+            args.plot_intermediates
+        );
+        idx = Some((start_idx, end_idx));
+    } else {
+        (power, min, max) = cut_data_start_and_end(
+            power,
+            trigger_factor,
+            pred_max_min,
+            frame_size,
+            sample_rate,
+            args.plot_intermediates
+        );
+    }
+    save_vec_to_npy(&power, args.output_path.clone(), output_file_name)?;
+    let energy = calc_energy(&power, sample_rate, idx);
+    let duration = power.duration(idx, sample_rate);
+    Ok(Results {
+        energy,
+        duration,
+        start_stop_idx: idx,
+        max_frame_energy: min,
+        idle_frame_energy: max,
+    })
+}
 
 pub(crate) fn filter_data(
     mut data: PowerVec,
@@ -127,10 +183,8 @@ pub(crate) fn cut_data_start_and_end(
     pred_max_min: Option<(f64, f64)>,
     window_size: f64,
     samplerate_opt: Option<f64>,
-    data_name: &'static str,
     plot: bool,
 ) -> (PowerVec, f64, f64) {
-    println!("Starting data cutting of {data_name}");
     let (max, idle_value) = if let Some((p_max, p_min)) = pred_max_min {
         (p_max, p_min)
     } else {
@@ -156,10 +210,8 @@ pub(crate) fn find_data_start_and_end(
     pred_max_min: Option<(f64, f64)>,
     window_size: f64,
     samplerate_opt: Option<f64>,
-    data_name: &'static str,
     plot: bool,
 ) -> (usize, usize, f64, f64) {
-    println!("Starting search for {data_name}");
     let (max, idle_value) = if let Some((p_max, p_min)) = pred_max_min {
         (p_max, p_min)
     } else {

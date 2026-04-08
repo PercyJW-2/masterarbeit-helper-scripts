@@ -98,6 +98,26 @@ impl PowerVec {
         };
         WindowEnergyIter::new(self, frame_size, samplerate_opt, duration)
     }
+
+    pub(crate) fn duration(&self, start_stop_idx: Option<(usize, usize)>, samplerate_opt: Option<f64>) -> Timestamp {
+        match self {
+            Self::Constant(data) => {
+                let samplerate = samplerate_opt.unwrap();
+                if let Some((start, stop)) = start_stop_idx {
+                    ((stop - start) + 1) as f64 / samplerate
+                } else {
+                    data.len() as f64 / samplerate
+                }
+            },
+            Self::Variable(data) => {
+                if let Some((start, stop)) = start_stop_idx {
+                    data[start].0 - data[stop].0
+                } else {
+                    data[data.len() - 1].0 - data[0].0
+                }
+            }
+        }
+    }
 }
 
 pub(crate) struct PowerIter<'a> {
