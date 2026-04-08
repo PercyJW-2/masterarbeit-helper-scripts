@@ -1,6 +1,6 @@
 use crate::data_reading_types::{PowerSample, PowerVec, WindowEnergyIter};
 use biquad::{Biquad, Coefficients, DirectForm1, Q_BUTTERWORTH_F64, ToHertz};
-use matplotlib as plt;
+use matplotlib::pyplot as plt;
 use npyz::WriterBuilder;
 use std::{
     fs::File,
@@ -26,7 +26,7 @@ pub(crate) fn calculate_results(
     let (file_len, file_reader) =
         init_reader(file_name, args.measurement_location.clone())?;
     let mut power = read_to_power_vector(file_len, file_reader, entry_handler)?;
-    if do_filter { 
+    if do_filter {
         power = filter_data(power, sample_rate.unwrap(), None);
     }
     let (max, min);
@@ -118,14 +118,14 @@ impl Side {
             }
         }
         if plot {
-            let (_, [[mut ax]]) = plt::subplots().expect("Could not initiate matplotlib");
+            let (_, [[mut ax]]) = plt::subplots().expect("could not initialize");
             ax.y(&energy_window_samples).plot();
             ax.xy(
-                [
+                &[
                     window_idx.unwrap_or(0) as f64,
                     window_idx.unwrap_or(0) as f64,
                 ],
-                [0.0, trigger_value],
+                &[0.0, trigger_value],
             )
             .plot();
             plt::show();

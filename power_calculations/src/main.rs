@@ -4,14 +4,14 @@ mod data_reading;
 mod data_reading_types;
 mod output_types;
 
-use pyo3::prelude::*;
-use std::{fs, io};
-
 use crate::args::*;
 use crate::data_actions::*;
 use crate::data_reading::*;
 use crate::data_reading_types::*;
 use crate::output_types::{OscilloscopeResults, Output};
+use pyo3::prelude::*;
+use std::ffi::CString;
+use std::{fs, io};
 
 fn main() -> io::Result<()> {
     let args = args().run();
@@ -206,12 +206,13 @@ fn main() -> io::Result<()> {
             env!("CARGO_MANIFEST_DIR"),
             "/../plot_energy_diffs.py"
         ));
-        let from_python = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
-            let script: Py<PyAny> = PyModule::from_code_bound(
+        let energy_diff_script_cstr = CString::new(energy_diff_script)?;
+        let from_python = Python::attach(|py| -> PyResult<Py<PyAny>> {
+            let script: Py<PyAny> = PyModule::from_code(
                 py,
-                energy_diff_script,
-                "plot_energy_diffs.pyc",
-                "plot_energy_diffs.pyc",
+                energy_diff_script_cstr.as_ref(),
+                c"plot_energy_diffs.pyc",
+                c"plot_energy_diffs.pyc",
             )?
             .getattr("main")?
             .into();
