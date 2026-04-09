@@ -33,7 +33,6 @@ fn main() -> io::Result<()> {
         JetsonEnum::Jetson(jetson) => Some(jetson),
     };
 
-
     let jetson_results = if let Some(jetson_prefs) = jetson_prefs {
         println!("Calculating Jetson results");
         const JETSON_TRIGGER_FACTOR: f64 = 0.1;
@@ -61,7 +60,7 @@ fn main() -> io::Result<()> {
                 .zip(jetson_prefs.predicted_minimum),
             jetson_prefs.frame_size,
             None,
-            "jetson.npy"
+            "jetson.npy",
         )?;
         Some(results)
     } else {
@@ -102,7 +101,7 @@ fn main() -> io::Result<()> {
                 .zip(shelly_prefs.predicted_minimum),
             shelly_prefs.frame_size,
             None,
-            "shelly.npy"
+            "shelly.npy",
         )?;
         Some(results)
     } else {
@@ -138,12 +137,10 @@ fn main() -> io::Result<()> {
             },
             true,
             OSC_TRIGGER_FACTOR,
-            osc_prefs
-                .predicted_maximum
-                .zip(osc_prefs.predicted_minimum),
+            osc_prefs.predicted_maximum.zip(osc_prefs.predicted_minimum),
             osc_prefs.frame_size,
             Some(osc_prefs.samplerate),
-            "oscilloscope.npy"
+            "oscilloscope.npy",
         )?;
         Some(results)
     } else {
@@ -162,8 +159,8 @@ fn main() -> io::Result<()> {
                     current: field_to_u16(&cols[1].1).expect("Could not parse Field"),
                 };
                 // apply calibration
-                let current_current =
-                    ((firmware_measurement.current as f64 / 1000.) + 0.004704622) * 0.997224237630222;
+                let current_current = ((firmware_measurement.current as f64 / 1000.) + 0.004704622)
+                    * 0.997224237630222;
                 let current_power =
                     current_current * estimate_voltage_from_current(current_current * 1000.);
                 Ok(PowerSample::Constant(current_power))
@@ -175,7 +172,7 @@ fn main() -> io::Result<()> {
                 .zip(firmware_prefs.predicted_minimum),
             firmware_prefs.frame_size,
             Some(2000.),
-            "firmware_power.npy"
+            "firmware_power.npy",
         )?;
         Some(results)
     } else {
@@ -186,11 +183,11 @@ fn main() -> io::Result<()> {
         jetson_results: jetson_results.clone(),
         shelly_results: shelly_results.clone(),
         oscilloscope_results: osc_results.clone().map(|osc_res| OscilloscopeResults {
-                results: osc_res,
-                sample_rate: osc_prefs.unwrap().samplerate,
-                use_voltage: osc_prefs.unwrap().use_voltage,
-                msmt_type: osc_prefs.unwrap().measurement_type.clone(),
-            }),
+            results: osc_res,
+            sample_rate: osc_prefs.unwrap().samplerate,
+            use_voltage: osc_prefs.unwrap().use_voltage,
+            msmt_type: osc_prefs.unwrap().measurement_type.clone(),
+        }),
         firmware_results: firmware_results.clone(),
     };
 
@@ -198,7 +195,10 @@ fn main() -> io::Result<()> {
 
     if args.results_storage {
         let serialized_results = serde_saphyr::to_string(&results).unwrap();
-        fs::write(args.output_path.clone().join("results.yaml"), serialized_results)?;
+        fs::write(
+            args.output_path.clone().join("results.yaml"),
+            serialized_results,
+        )?;
     }
 
     if args.plot {
@@ -222,6 +222,7 @@ fn main() -> io::Result<()> {
                     (
                         2000.,
                         osc_prefs.map_or(5_000_000., |pref| pref.samplerate),
+                        args.output_path,
                         firmware_results.map_or((0, 0), |res| res.start_stop_idx.unwrap_or((0, 0))),
                         osc_results.map_or((0, 0), |res| res.start_stop_idx.unwrap_or((0, 0))),
                         jetson_results.map_or((0, 0), |res| res.start_stop_idx.unwrap_or((0, 0))),
@@ -231,10 +232,7 @@ fn main() -> io::Result<()> {
             } else {
                 script.call1(
                     py,
-                    (
-                        2000.,
-                        osc_prefs.map_or(5_000_000., |pref| pref.samplerate),
-                    ),
+                    (2000., osc_prefs.map_or(5_000_000., |pref| pref.samplerate)),
                 )
             }
         });
