@@ -87,8 +87,8 @@ fn main() -> io::Result<()> {
                         .into(),
                 };
                 // apply calibration
-                let mut power = shelly_measurement.power - 40.40749136;
-                power *= 0.796818078;
+                let mut power = shelly_measurement.power - 41.36936767;
+                power *= 0.795372365;
                 Ok(PowerSample::Variable(
                     shelly_measurement.measurement_timestamp as f64 / 1_000_000.,
                     power,
@@ -125,6 +125,9 @@ fn main() -> io::Result<()> {
                     }
                     OscilloscopeMsmtType::CurrentRanger => {
                         (pico_measurement.current + 0.00226039126953639) * 0.991674394344991
+                    }
+                    OscilloscopeMsmtType::INA225 => {
+                        (pico_measurement.current + 0.0004272598504) * 1.99000512058047
                     }
                 };
                 let voltage = if osc_prefs.use_voltage {

@@ -30,6 +30,7 @@ pub(crate) enum FirmwareEnum {
 pub(crate) enum OscilloscopeMsmtType {
     UCurrent,
     CurrentRanger,
+    INA225,
 }
 
 impl FromStr for OscilloscopeMsmtType {
@@ -39,6 +40,7 @@ impl FromStr for OscilloscopeMsmtType {
         match s.to_lowercase().as_str() {
             "ucurrent" => Ok(OscilloscopeMsmtType::UCurrent),
             "currentranger" => Ok(OscilloscopeMsmtType::CurrentRanger),
+            "ina225" => Ok(OscilloscopeMsmtType::INA225),
             _ => Err(format!("String {s} is invalid")),
         }
     }
@@ -49,6 +51,7 @@ impl Display for OscilloscopeMsmtType {
         match self {
             Self::UCurrent => write!(f, "UCurrent"),
             Self::CurrentRanger => write!(f, "CurrentRanger"),
+            Self::INA225 => write!(f, "INA225"),
         }
     }
 }
@@ -76,7 +79,7 @@ pub(crate) struct Oscilloscope {
     #[bpaf(
         short,
         long,
-        fallback(OscilloscopeMsmtType::CurrentRanger),
+        fallback(OscilloscopeMsmtType::INA225),
         display_fallback
     )]
     pub(crate) measurement_type: OscilloscopeMsmtType,
