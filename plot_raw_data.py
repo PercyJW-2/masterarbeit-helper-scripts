@@ -12,10 +12,10 @@ if __name__ == "__main__":
     pico_data = pl.read_parquet(path + "/usb_osc_data.parquet")
     firmware_data = pl.read_parquet(path + "/fast_firmware.parquet")
 
-    osc_idx = np.arange(start=0, stop=pico_data.shape[0]) * (1 / 5000000)
+    osc_idx = np.arange(start=0, stop=pico_data.shape[0]) * (1 / 2000)
     firm_idx = np.arange(start=0, stop=firmware_data.shape[0]) * (1 / 2000)
 
-    plt.plot(osc_idx, pico_data["current"], label="osc")
+    plt.plot(osc_idx, pico_data["current"] * 2, label="osc")
     plt.plot(firm_idx, firmware_data["current"] / 1000, label="firmware")
 
     plt.legend(loc="lower center")

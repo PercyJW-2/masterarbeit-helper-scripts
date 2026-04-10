@@ -7,25 +7,25 @@ import numpy as np
 
 def calc_avg_power(directory: str) -> tuple[float, float, float, float, float, float]:
     fast_firmware_current_data = (
-        pl.scan_csv(directory + "/fast_firmware.csv", skip_rows_after_header=1).select(
-            "Current"
-        )
+        pl.scan_parquet(directory + "/fast_firmware.parquet").select("current")
     ).collect()
     # sos = signal.butter(10, 750, "low", fs=2000, output="sos")
     # fast_firmware_current = np.mean(
     #    signal.sosfilt(sos, fast_firmware_current_data["Current"])
     # )
-    fast_firmware_current = np.mean(fast_firmware_current_data["Current"].to_numpy())
+    fast_firmware_current = np.mean(
+        fast_firmware_current_data["current"].to_numpy()[1:]
+    )
     print("Fast Firmware Current:", fast_firmware_current)
     shelly_plug_current = (
-        pl.scan_csv(directory + "/shellyPlug.csv").select("Current").mean()
-    ).collect()["Current"][0]
+        pl.scan_parquet(directory + "/shellyPlug.parquet").select("current").mean()
+    ).collect()["current"][0]
     shelly_plug_voltage = (
-        pl.scan_csv(directory + "/shellyPlug.csv").select("Voltage").mean()
-    ).collect()["Voltage"][0]
+        pl.scan_parquet(directory + "/shellyPlug.parquet").select("voltage").mean()
+    ).collect()["voltage"][0]
     shelly_plug_power = (
-        pl.scan_csv(directory + "/shellyPlug.csv").select("Power").mean()
-    ).collect()["Power"][0]
+        pl.scan_parquet(directory + "/shellyPlug.parquet").select("power").mean()
+    ).collect()["power"][0]
     print(
         "Shelly Current:",
         shelly_plug_current,
@@ -35,11 +35,11 @@ def calc_avg_power(directory: str) -> tuple[float, float, float, float, float, f
         shelly_plug_power,
     )
     pico_voltage = (
-        pl.scan_csv(directory + "/usb_osc_data.csv").select("Voltage").mean()
-    ).collect(engine="streaming")["Voltage"][0]
+        pl.scan_parquet(directory + "/usb_osc_data.parquet").select("voltage").mean()
+    ).collect(engine="streaming")["voltage"][0]
     pico_current = (
-        pl.scan_csv(directory + "/usb_osc_data.csv").select("Current").mean()
-    ).collect(engine="streaming")["Current"][0]
+        pl.scan_parquet(directory + "/usb_osc_data.parquet").select("current").mean()
+    ).collect(engine="streaming")["current"][0]
     print("Pico Current:", pico_current, " Voltage:", pico_voltage)
     return (
         float(fast_firmware_current),
