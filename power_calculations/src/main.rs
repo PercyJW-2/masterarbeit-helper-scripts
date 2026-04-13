@@ -228,7 +228,7 @@ fn main() -> io::Result<()> {
                 script.call1(
                     py,
                     (
-                        2000.,
+                        firmware_prefs.map_or(2_000., |pref| pref.samplerate),
                         osc_prefs.map_or(5_000_000., |pref| pref.samplerate),
                         args.output_path,
                     ),
