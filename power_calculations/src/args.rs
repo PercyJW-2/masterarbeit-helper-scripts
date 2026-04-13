@@ -12,10 +12,13 @@ pub(crate) struct Firmware {
     /// expected minimum energy value of measurement window of duration determined in frame_size
     #[bpaf(short, long)]
     pub(crate) predicted_minimum: Option<f64>,
-    /// averaging frame size - configures duration of frame size wich is used to detect the
+    /// averaging frame size - configures duration of frame size which is used to detect the
     /// beginning of the dataset. unit is in seconds
     #[bpaf(short, long, fallback(DEFAULT_THRESHOLD), display_fallback)]
     pub(crate) frame_size: f64,
+    /// samplerate that was used to record firmware data
+    #[bpaf(short, long, fallback(2000.), display_fallback)]
+    pub(crate) samplerate: f64,
 }
 
 #[derive(Bpaf, Debug, Clone)]
@@ -64,7 +67,7 @@ pub(crate) struct Oscilloscope {
     /// expected minimum energy value of measurement window of duration determined in frame_size
     #[bpaf(short, long)]
     pub(crate) predicted_minimum: Option<f64>,
-    /// averaging frame size - configures duration of frame size wich is used to detect the
+    /// averaging frame size - configures duration of frame size which is used to detect the
     /// beginning of the dataset. unit is in seconds
     #[bpaf(short, long, fallback(DEFAULT_THRESHOLD), display_fallback)]
     pub(crate) frame_size: f64,
@@ -101,7 +104,7 @@ pub(crate) struct Shelly {
     /// expected minimum energy value of measurement window of duration determined in frame_size
     #[bpaf(short, long)]
     pub(crate) predicted_minimum: Option<f64>,
-    /// averaging frame size - configures duration of frame size wich is used to detect the
+    /// averaging frame size - configures duration of frame size which is used to detect the
     /// beginning of the dataset. unit is in seconds
     #[bpaf(short, long, fallback(DEFAULT_THRESHOLD), display_fallback)]
     pub(crate) frame_size: f64,
@@ -123,7 +126,7 @@ pub(crate) struct Jetson {
     /// expected minimum energy value of measurement window of duration determined in frame_size
     #[bpaf(short, long)]
     pub(crate) predicted_minimum: Option<f64>,
-    /// averaging frame size - configures duration of frame size wich is used to detect the
+    /// averaging frame size - configures duration of frame size which is used to detect the
     /// beginning of the dataset. unit is in seconds
     #[bpaf(short, long, fallback(DEFAULT_THRESHOLD), display_fallback)]
     pub(crate) frame_size: f64,

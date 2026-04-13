@@ -24,16 +24,8 @@ fn main() -> io::Result<()> {
         OscilloscopeEnum::None => None,
         OscilloscopeEnum::Oscilloscope(oscilloscope) => Some(oscilloscope),
     };
-    let shelly_prefs = match &args.shelly_enum {
-        ShellyEnum::None => None,
-        ShellyEnum::Shelly(shelly) => Some(shelly),
-    };
-    let jetson_prefs = match &args.jetson_enum {
-        JetsonEnum::None => None,
-        JetsonEnum::Jetson(jetson) => Some(jetson),
-    };
 
-    let jetson_results = if let Some(jetson_prefs) = jetson_prefs {
+    let jetson_results = if let JetsonEnum::Jetson(jetson_prefs) = &args.jetson_enum {
         println!("Calculating Jetson results");
         const JETSON_TRIGGER_FACTOR: f64 = 0.1;
         let results = calculate_results(
@@ -67,7 +59,7 @@ fn main() -> io::Result<()> {
         None
     };
 
-    let shelly_results = if let Some(shelly_prefs) = shelly_prefs {
+    let shelly_results = if let ShellyEnum::Shelly(shelly_prefs) = &args.shelly_enum {
         const SHELLY_TRIGGER_FACTOR: f64 = 0.05;
         let results = calculate_results(
             &args,
@@ -174,7 +166,7 @@ fn main() -> io::Result<()> {
                 .predicted_maximum
                 .zip(firmware_prefs.predicted_minimum),
             firmware_prefs.frame_size,
-            Some(2000.),
+            Some(firmware_prefs.samplerate),
             "firmware_power.npy",
         )?;
         Some(results)
@@ -223,7 +215,7 @@ fn main() -> io::Result<()> {
                 script.call1(
                     py,
                     (
-                        2000.,
+                        firmware_prefs.map_or(2_000., |pref| pref.samplerate),
                         osc_prefs.map_or(5_000_000., |pref| pref.samplerate),
                         args.output_path,
                         firmware_results.map_or((0, 0), |res| res.start_stop_idx.unwrap_or((0, 0))),
