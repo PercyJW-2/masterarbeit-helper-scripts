@@ -13,16 +13,16 @@ pub(crate) struct Output {
 impl Display for Output {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(jetson) = &self.jetson_results {
-            writeln!(f, "Jetson:\t{}\n", jetson)?;
+            writeln!(f, "Jetson:\t\t{}", jetson)?;
         }
         if let Some(shelly) = &self.shelly_results {
-            writeln!(f, "Shelly:\t{}\n", shelly)?;
+            writeln!(f, "Shelly:\t\t{}", shelly)?;
         }
         if let Some(osc) = &self.oscilloscope_results {
-            writeln!(f, "Oscilloscope:\t{}\n", osc.results)?;
+            writeln!(f, "Oscilloscope:\t{}", osc.results)?;
         }
         if let Some(firmware) = &self.firmware_results {
-            writeln!(f, "Firmware:\t{}\n", firmware)?;
+            writeln!(f, "Firmware:\t{}", firmware)?;
         }
         Ok(())
     }

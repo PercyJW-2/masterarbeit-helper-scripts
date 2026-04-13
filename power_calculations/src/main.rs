@@ -71,7 +71,7 @@ fn main() -> io::Result<()> {
         const SHELLY_TRIGGER_FACTOR: f64 = 0.05;
         let results = calculate_results(
             &args,
-            "shelly.parquet",
+            "shellyPlug.parquet",
             |raw_row| {
                 let cols = raw_row.into_columns();
                 let shelly_measurement = ShellyPlug {
@@ -235,7 +235,11 @@ fn main() -> io::Result<()> {
             } else {
                 script.call1(
                     py,
-                    (2000., osc_prefs.map_or(5_000_000., |pref| pref.samplerate)),
+                    (
+                        2000.,
+                        osc_prefs.map_or(5_000_000., |pref| pref.samplerate),
+                        args.output_path,
+                    ),
                 )
             }
         });

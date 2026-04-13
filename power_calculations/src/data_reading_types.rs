@@ -111,7 +111,7 @@ impl PowerVec {
             },
             Self::Variable(data) => {
                 if let Some((start, stop)) = start_stop_idx {
-                    data[start].0 - data[stop].0
+                    data[stop].0 - data[start].0
                 } else {
                     data[data.len() - 1].0 - data[0].0
                 }

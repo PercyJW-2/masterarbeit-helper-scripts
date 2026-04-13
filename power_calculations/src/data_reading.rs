@@ -10,7 +10,7 @@ use parquet::file::reader::{FileReader, SerializedFileReader};
 use parquet::record::{Field, Row};
 
 pub(crate) fn get_file_len(path: PathBuf) -> u64 {
-    let file_metadata = metadata(path).expect("Could not open File");
+    let file_metadata = metadata(path.clone()).unwrap_or_else(|_| panic!("Could not open File {:?}", path));
     file_metadata.len()
 }
 
