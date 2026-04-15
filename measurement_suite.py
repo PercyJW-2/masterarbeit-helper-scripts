@@ -4,6 +4,7 @@ import time
 import logging
 from pathlib import Path
 
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(
@@ -92,6 +93,69 @@ parser.add_argument(
     help="Skips power calculation and just stores the raw and uncalibrated recorded data",
     action="store_true",
 )
+parser.add_argument(
+    "--pico_samplerate_sweep",
+    help="In the measurement_path folder there are multiple folders that have the format XSps which are used to determine the sample-rate of the measurement",
+    action="store_true",
+)
+
+
+def start_run(
+    args: argparse.Namespace,
+    storage_path: Path,
+    pico_samplerate_override: None | int = None,
+):
+    logger.debug("building data collection command")
+    if pico_samplerate_override is None:
+        pico_samplerate_override = args.picoscope_samplerate
+    data_collection_command = f"urecs-data-collector -s={storage_path.as_posix()} -d={int(args.duration + 1)}s -c='{args.command}'"
+    if args.jetson:
+        data_collection_command += f" jetson --address={args.jetson_address} --data-port=8000 --control-port=8081"
+    if args.firmware:
+        data_collection_command += f" firmware --address={args.firmware_address}"
+    if args.fast_firmware:
+        data_collection_command += f" fast-firmware --address={args.firmware_address} --data-port=3000 --channel={args.fast_firmware_channel}, --sample-rate={args.fast_firmware_samplerate}"
+    if args.shelly:
+        data_collection_command += f" shelly-plug --address={args.shelly_address}"
+    if args.picoscope:
+        data_collection_command += f" usb-oscilloscope --sample-rate={pico_samplerate_override} --measurement-type={args.picoscope_measurement_type}"
+    power_calculation_command = f"power_calculations -m={storage_path.as_posix()} -c -r"
+    power_calculation_methods = ""
+    if args.fast_firmware:
+        power_calculation_methods += f" firmware -s={args.fast_firmware_samplerate}"
+    if args.picoscope:
+        power_calculation_methods += f" oscilloscope -s={pico_samplerate_override} -m={args.picoscope_measurement_type}"
+        if args.picoscope_use_measured_voltages:
+            power_calculation_methods += " -v"
+    if args.shelly:
+        power_calculation_methods += " shelly"
+    if args.jetson:
+        power_calculation_methods += " jetson"
+
+    for run_number in range(args.run_count):
+        run_path = storage_path / str(run_number)
+        if not run_path.exists():
+            run_path.mkdir()
+        logger.info(f"Starting run number {run_number}")
+        subprocess.run(data_collection_command, shell=True)
+        if args.skip_power_calculation:
+            logger.info("Moving recorded data into measurement folder")
+            output_files = list(storage_path.glob("*.parquet"))
+            for file in output_files:
+                file.move(run_path)
+            continue
+        logger.info("Starting power calculation")
+        iteration_command = (
+            power_calculation_command
+            + f" --output-path={run_path.as_posix()}"
+            + power_calculation_methods
+        )
+        logger.debug(f"iteration_command: {iteration_command}")
+        subprocess.run(iteration_command, shell=True)
+        logger.debug("Cleaning previous measurements")
+        msmts = list(storage_path.glob("*.parquet"))
+        for msmt in msmts:
+            msmt.unlink()
 
 
 if __name__ == "__main__":
@@ -115,54 +179,18 @@ if __name__ == "__main__":
         logger.error("Choose a folder that exists to store each run")
         exit(-2)
 
-    if not hasattr(args, "duration"):
+    if args.duration is None:
         logger.info("Starting Dry-Run to determine duration")
         start = time.time()
         subprocess.run(args.command, shell=True)
         end = time.time()
         args.duration = end - start
 
-    logger.debug("building data collection command")
-    data_collection_command = f"urecs-data-collector -s={storage_path.as_posix()} -d={int(args.duration + 1)}s -c='{args.command}'"
-    if args.jetson:
-        data_collection_command += f" jetson --address={args.jetson_address} --data-port=8000 --control-port=8081"
-    if args.firmware:
-        data_collection_command += f" firmware --address={args.firmware_address}"
-    if args.fast_firmware:
-        data_collection_command += f" fast-firmware --address={args.firmware_address} --data-port=3000 --channel={args.fast_firmware_channel}, --sample-rate={args.fast_firmware_samplerate}"
-    if args.shelly:
-        data_collection_command += f" shelly-plug --address={args.shelly_address}"
-    if args.picoscope:
-        data_collection_command += f" usb-oscilloscope --sample-rate={args.picoscope_samplerate} --measurement-type={args.picoscope_measurement_type}"
-    power_calculation_command = f"power_calculations -m={storage_path.as_posix()} -c r"
-    power_calculation_methods = ""
-    if args.fast_firmware:
-        power_calculation_methods += f" firmware -s={args.fast_firmware_samplerate}"
-    if args.picoscope:
-        power_calculation_methods += f" oscilloscope -s={args.picoscope_samplerate} -m={args.picoscope_measurement_type}"
-        if args.picoscope_use_measured_voltages:
-            power_calculation_methods += " -v"
-    if args.shelly:
-        power_calculation_methods += " shelly"
-    if args.jetson:
-        power_calculation_methods += " jetson"
-
-    for run_number in args.run_count:
-        run_path = storage_path / str(run_number)
-        if not run_path.exists():
-            run_path.mkdir()
-        logger.info(f"Starting run number {run_number}")
-        subprocess.run(data_collection_command, shell=True)
-        if args.skip_power_calculation:
-            logger.info("Moving recorded data into measurement folder")
-            output_files = list(storage_path.glob("*.parquet"))
-            for file in output_files:
-                file.move(run_path)
-            continue
-        logger.info("Starting power calculation")
-        iteration_command = (
-            power_calculation_command
-            + f" --output-path={run_path.as_posix()}"
-            + power_calculation_methods
-        )
-        subprocess.run(iteration_command, shell=True)
+    if args.pico_samplerate_sweep:
+        for directory in [x for x in storage_path.iterdir() if x.is_dir()]:
+            folder_name = directory.name
+            samplerate = int(folder_name[:-3])
+            logger.info(f"Starting Measurements with {samplerate}S/s")
+            start_run(args, directory, samplerate)
+    else:
+        start_run(args, storage_path)

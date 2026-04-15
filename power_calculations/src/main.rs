@@ -12,8 +12,13 @@ use crate::output_types::{OscilloscopeResults, Output};
 use pyo3::prelude::*;
 use std::ffi::CString;
 use std::{fs, io};
+use log::{error, info};
 
 fn main() -> io::Result<()> {
+    simple_logger::SimpleLogger::new()
+        .with_level(log::LevelFilter::Info)
+        .env()
+        .init().unwrap();
     let args = args().run();
 
     let firmware_prefs = match &args.firmware_enum {
@@ -26,7 +31,7 @@ fn main() -> io::Result<()> {
     };
 
     let jetson_results = if let JetsonEnum::Jetson(jetson_prefs) = &args.jetson_enum {
-        println!("Calculating Jetson results");
+        info!("Calculating Jetson results");
         const JETSON_TRIGGER_FACTOR: f64 = 0.1;
         let results = calculate_results(
             &args,
@@ -60,6 +65,7 @@ fn main() -> io::Result<()> {
     };
 
     let shelly_results = if let ShellyEnum::Shelly(shelly_prefs) = &args.shelly_enum {
+        info!("Calculating shelly results");
         const SHELLY_TRIGGER_FACTOR: f64 = 0.05;
         let results = calculate_results(
             &args,
@@ -101,6 +107,7 @@ fn main() -> io::Result<()> {
     };
 
     let osc_results = if let Some(osc_prefs) = &osc_prefs {
+        info!("Calculating OSC results");
         const OSC_TRIGGER_FACTOR: f64 = 0.25;
         let results = calculate_results(
             &args,
@@ -143,6 +150,7 @@ fn main() -> io::Result<()> {
     };
 
     let firmware_results = if let Some(firmware_prefs) = &firmware_prefs {
+        info!("Calculating Firmware results");
         const FIRMWARE_TRIGGER_FACTOR: f64 = 0.25;
         let results = calculate_results(
             &args,
@@ -186,7 +194,7 @@ fn main() -> io::Result<()> {
         firmware_results: firmware_results.clone(),
     };
 
-    println!("{}", results);
+    info!("{}", results);
 
     if args.results_storage {
         let serialized_results = serde_saphyr::to_string(&results).unwrap();
@@ -238,7 +246,7 @@ fn main() -> io::Result<()> {
         match from_python {
             Ok(_) => {}
             Err(e) => {
-                println!("Got Python error: {}", e);
+                error!("Got Python error: {}", e);
             }
         }
     }

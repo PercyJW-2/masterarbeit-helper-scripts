@@ -7,6 +7,7 @@ use std::{
     io::{BufWriter, Result},
 };
 use std::path::PathBuf;
+use log::info;
 use parquet::record::Row;
 use crate::args::Args;
 use crate::data_reading::{init_reader, read_to_power_vector};
@@ -130,7 +131,7 @@ impl Side {
             .plot();
             plt::show();
         }
-        println!("Index of Trigger-Point: {}", stop_idx.unwrap_or(0));
+        info!("Index of Trigger-Point: {}", stop_idx.unwrap_or(0));
         stop_idx.unwrap_or(0)
     }
 
@@ -159,7 +160,7 @@ impl Side {
             trigger_value,
             plot,
         );
-        println!("Elements to remove: {iterations}");
+        info!("Elements to remove: {iterations}");
         match self {
             Self::Start => {
                 for _ in 0..iterations {
@@ -188,15 +189,15 @@ pub(crate) fn cut_data_start_and_end(
     let (max, idle_value) = if let Some((p_max, p_min)) = pred_max_min {
         (p_max, p_min)
     } else {
-        println!("Searching maximum and idle values");
+        info!("Searching maximum and idle values");
         data.power_window_iter(window_size, samplerate_opt)
             .max_and_idle()
     };
     let trigger_value = (max - idle_value) * trigger_factor + idle_value;
-    println!("Trigger value: {trigger_value}");
-    println!("Cutting on start");
+    info!("Trigger value: {trigger_value}");
+    info!("Cutting on start");
     data = Side::Start.cut_on_side(data, samplerate_opt, trigger_value, window_size, plot);
-    println!("Cutting on end");
+    info!("Cutting on end");
     data = Side::End.cut_on_side(data, samplerate_opt, trigger_value, window_size, plot);
     (data, max, trigger_value)
 }
@@ -215,19 +216,19 @@ pub(crate) fn find_data_start_and_end(
     let (max, idle_value) = if let Some((p_max, p_min)) = pred_max_min {
         (p_max, p_min)
     } else {
-        println!("Searching maximum and idle values");
+        info!("Searching maximum and idle values");
         data.power_window_iter(window_size, samplerate_opt)
             .max_and_idle()
     };
     let trigger_value = (max - idle_value) * trigger_factor + idle_value;
-    println!("Trigger value: {trigger_value}");
-    println!("Searching on start");
+    info!("Trigger value: {trigger_value}");
+    info!("Searching on start");
     let start_idx = Side::Start.iterations_until_trigger(
         data.power_window_iter(window_size, samplerate_opt),
         trigger_value,
         plot,
     );
-    println!("Searching on end");
+    info!("Searching on end");
     let end_idx = data.len()
         - 1
         - Side::End.iterations_until_trigger(
