@@ -98,6 +98,11 @@ parser.add_argument(
     help="In the measurement_path folder there are multiple folders that have the format XSps which are used to determine the sample-rate of the measurement",
     action="store_true",
 )
+parser.add_argument(
+    "--use_complete_measurement",
+    help="Use this mode to calculate the energy of the complete measurement without cutting the start or end",
+    action="store_true",
+)
 
 
 def start_run(
@@ -121,16 +126,21 @@ def start_run(
         data_collection_command += f" usb-oscilloscope --sample-rate={pico_samplerate_override} --measurement-type={args.picoscope_measurement_type}"
     power_calculation_command = f"power_calculations -m={storage_path.as_posix()} -c -r"
     power_calculation_methods = ""
+    power_cut_section_command = ""
+    if args.use_complete_measurement:
+        power_cut_section_command = " --predicted-maximum=0.0001 --predicted-minimum=0"
     if args.fast_firmware:
-        power_calculation_methods += f" firmware -s={args.fast_firmware_samplerate}"
+        power_calculation_methods += (
+            f" firmware -s={args.fast_firmware_samplerate}{power_cut_section_command}"
+        )
     if args.picoscope:
-        power_calculation_methods += f" oscilloscope -s={pico_samplerate_override} -m={args.picoscope_measurement_type}"
+        power_calculation_methods += f" oscilloscope -s={pico_samplerate_override} -m={args.picoscope_measurement_type}{power_cut_section_command}"
         if args.picoscope_use_measured_voltages:
             power_calculation_methods += " -v"
     if args.shelly:
-        power_calculation_methods += " shelly"
+        power_calculation_methods += f" shelly{power_cut_section_command}"
     if args.jetson:
-        power_calculation_methods += " jetson"
+        power_calculation_methods += f" jetson{power_cut_section_command}"
 
     for run_number in range(args.run_count):
         run_path = storage_path / str(run_number)
