@@ -1,4 +1,4 @@
-use std::collections::{VecDeque, vec_deque::Iter};
+use std::collections::VecDeque;
 
 pub(crate) struct JetsonMeasurement {
     /// Unit in microseconds
@@ -40,8 +40,8 @@ pub(crate) type Power = f64;
 pub(crate) type Timestamp = f64;
 
 pub(crate) enum PowerVec {
-    Constant(VecDeque<Power>),
-    Variable(VecDeque<(Timestamp, Power)>),
+    Constant(Vec<Power>),
+    Variable(Vec<(Timestamp, Power)>),
 }
 
 impl PowerVec {
@@ -52,29 +52,11 @@ impl PowerVec {
         }
     }
 
-    pub(crate) fn pop_front(&mut self) -> Option<PowerSample> {
-        match self {
-            PowerVec::Constant(data) => data.pop_front().map(PowerSample::Constant),
-            PowerVec::Variable(data) => data
-                .pop_front()
-                .map(|(tstmp, val)| PowerSample::Variable(tstmp, val)),
-        }
-    }
-
-    pub(crate) fn pop_back(&mut self) -> Option<PowerSample> {
-        match self {
-            PowerVec::Constant(data) => data.pop_back().map(PowerSample::Constant),
-            PowerVec::Variable(data) => data
-                .pop_back()
-                .map(|(tstmp, val)| PowerSample::Variable(tstmp, val)),
-        }
-    }
-
     fn get_first(&self) -> Option<PowerSample> {
         match self {
-            PowerVec::Constant(data) => data.front().map(|val| PowerSample::Constant(*val)),
+            PowerVec::Constant(data) => data.first().map(|val| PowerSample::Constant(*val)),
             PowerVec::Variable(data) => data
-                .front()
+                .first()
                 .map(|(tstmp, val)| PowerSample::Variable(*tstmp, *val)),
         }
     }
@@ -91,8 +73,8 @@ impl PowerVec {
         let duration = match self {
             Self::Constant(data) => data.len() as f64 * (1.0 / samplerate_opt.unwrap()),
             Self::Variable(data) => {
-                let (start, _) = *data.front().unwrap();
-                let (end, _) = *data.back().unwrap();
+                let (start, _) = *data.first().unwrap();
+                let (end, _) = *data.last().unwrap();
                 end - start
             }
         };
@@ -118,11 +100,24 @@ impl PowerVec {
             }
         }
     }
+
+    pub(crate) fn cut_data(self, start_idx: usize, stop_idx: usize) -> Self {
+        match self {
+            Self::Constant(data) => {
+                let data_cut_section = data[start_idx..stop_idx].to_vec();
+                PowerVec::Constant(data_cut_section)
+            },
+            Self::Variable(data) => {
+                let data_cut_section = data[start_idx..stop_idx].to_vec();
+                PowerVec::Variable(data_cut_section)
+            }
+        }
+    }
 }
 
 pub(crate) struct PowerIter<'a> {
-    const_iter: Option<Iter<'a, f64>>,
-    var_iter: Option<Iter<'a, (f64, f64)>>,
+    const_iter: Option<core::slice::Iter<'a, f64>>,
+    var_iter: Option<core::slice::Iter<'a, (f64, f64)>>,
     iter_count: usize,
 }
 
@@ -134,12 +129,12 @@ impl<'a> PowerIter<'a> {
             (0, data.len()-1)
         };
         let const_iter = if let PowerVec::Constant(raw_data) = data {
-            Some(raw_data.range(start..stop+1))
+            Some(raw_data[start..=stop].iter())
         } else {
             None
         };
         let var_iter = if let PowerVec::Variable(raw_data) = data {
-            Some(raw_data.range(start..stop+1))
+            Some(raw_data[start..=stop].iter())
         } else {
             None
         };

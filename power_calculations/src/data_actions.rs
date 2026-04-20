@@ -146,36 +146,6 @@ impl Side {
             Self::End => Self::cut_calculation_power(data.rev(), trigger_value, plot),
         }
     }
-
-    fn cut_on_side(
-        &self,
-        mut data: PowerVec,
-        samplerate_opt: Option<f64>,
-        trigger_value: f64,
-        window_size: f64,
-        plot: bool,
-    ) -> PowerVec {
-        let iterations = self.iterations_until_trigger(
-            data.power_window_iter(window_size, samplerate_opt),
-            trigger_value,
-            plot,
-        );
-        info!("Elements to remove: {iterations}");
-        match self {
-            Self::Start => {
-                for _ in 0..iterations {
-                    data.pop_front();
-                }
-            }
-            Self::End => {
-                for _ in 0..iterations {
-                    data.pop_back();
-                }
-            }
-        }
-
-        data
-    }
 }
 
 pub(crate) fn cut_data_start_and_end(
@@ -186,20 +156,16 @@ pub(crate) fn cut_data_start_and_end(
     samplerate_opt: Option<f64>,
     plot: bool,
 ) -> (PowerVec, f64, f64) {
-    let (max, idle_value) = if let Some((p_max, p_min)) = pred_max_min {
-        (p_max, p_min)
-    } else {
-        info!("Searching maximum and idle values");
-        data.power_window_iter(window_size, samplerate_opt)
-            .max_and_idle()
-    };
-    let trigger_value = (max - idle_value) * trigger_factor + idle_value;
-    info!("Trigger value: {trigger_value}");
-    info!("Cutting on start");
-    data = Side::Start.cut_on_side(data, samplerate_opt, trigger_value, window_size, plot);
-    info!("Cutting on end");
-    data = Side::End.cut_on_side(data, samplerate_opt, trigger_value, window_size, plot);
-    (data, max, trigger_value)
+    let (start_idx, stop_idx, max, idle_value) = find_data_start_and_end(
+        &data,
+        trigger_factor,
+        pred_max_min,
+        window_size,
+        samplerate_opt,
+        plot,
+    );
+    data = data.cut_data(start_idx, stop_idx);
+    (data, max, idle_value)
 }
 
 /// Finds start and end of measurement, either self-determines idle and max values or uses the

@@ -3,6 +3,7 @@ import subprocess
 import time
 import logging
 from pathlib import Path
+import yaml
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -142,8 +143,7 @@ def start_run(
     if args.jetson:
         power_calculation_methods += f" jetson{power_cut_section_command}"
 
-    for run_number in range(args.run_count):
-        run_path = storage_path / str(run_number)
+    def execute_run(run_number: int, run_path) -> bool:
         if not run_path.exists():
             run_path.mkdir()
         logger.info(f"Starting run number {run_number}")
@@ -153,7 +153,7 @@ def start_run(
             output_files = list(storage_path.glob("*.parquet"))
             for file in output_files:
                 file.move(run_path)
-            continue
+            return True
         logger.info("Starting power calculation")
         iteration_command = (
             power_calculation_command
@@ -166,6 +166,39 @@ def start_run(
         msmts = list(storage_path.glob("*.parquet"))
         for msmt in msmts:
             msmt.unlink()
+        return False
+
+    for run_number in range(args.run_count):
+        run_path = storage_path / str(run_number)
+        skip_power_calculation = execute_run(run_number, run_path)
+        if skip_power_calculation:
+            continue
+        logger.debug("Checking run duration")
+        duration = 0
+        with (run_path / "results.yaml").open() as result_file:
+            result = yaml.safe_load(result_file)
+            count = 0
+            duration_sum = 0
+            if result["jetson_results"] is not None:
+                count += 1
+                duration_sum += result["jetson_results"]["duration"]
+            if result["shelly_results"] is not None:
+                count += 1
+                duration_sum += result["shelly_results"]["duration"]
+            if result["oscilloscope_results"] is not None:
+                count += 1
+                duration_sum += result["oscilloscope_results"]["results"]["duration"]
+            if result["firmware_results"] is not None:
+                count += 1
+                duration_sum += result["firmware_results"]["duration"]
+            duration = duration_sum / count
+        planned_duration = int(args.duration + 1)
+        duration_diff = abs(duration - planned_duration)
+        if duration_diff > planned_duration * 0.1:
+            logger.info(
+                "run duration is too long -> scrapping last run and starting run again"
+            )
+            _ = execute_run(run_number, run_path)
 
 
 if __name__ == "__main__":

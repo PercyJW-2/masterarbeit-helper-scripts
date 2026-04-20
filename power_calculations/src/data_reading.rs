@@ -55,9 +55,9 @@ pub(crate) fn read_to_power_vector(
     }
 
     if values_varia.is_empty() {
-        Ok(PowerVec::Constant(values_const))
+        Ok(PowerVec::Constant(values_const.into()))
     } else {
-        Ok(PowerVec::Variable(values_varia))
+        Ok(PowerVec::Variable(values_varia.into()))
     }
 }
 
