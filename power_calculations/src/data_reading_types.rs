@@ -103,13 +103,23 @@ impl PowerVec {
 
     pub(crate) fn cut_data(self, start_idx: usize, stop_idx: usize) -> Self {
         match self {
-            Self::Constant(data) => {
-                let data_cut_section = data[start_idx..stop_idx].to_vec();
-                PowerVec::Constant(data_cut_section)
+            Self::Constant(mut data) => {
+                if stop_idx < data.len() - 2 {
+                    data.drain(stop_idx + 1..data.len());
+                }
+                if start_idx > 0 {
+                    data.drain(0..start_idx);
+                }
+                PowerVec::Constant(data)
             },
-            Self::Variable(data) => {
-                let data_cut_section = data[start_idx..stop_idx].to_vec();
-                PowerVec::Variable(data_cut_section)
+            Self::Variable(mut data) => {
+                if stop_idx < data.len() - 2 {
+                    data.drain(stop_idx + 1..data.len());
+                }
+                if start_idx > 0 {
+                    data.drain(0..start_idx);
+                }
+                PowerVec::Variable(data)
             }
         }
     }
