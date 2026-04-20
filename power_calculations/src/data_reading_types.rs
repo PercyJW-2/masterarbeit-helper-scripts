@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use log::info;
 
 pub(crate) struct JetsonMeasurement {
     /// Unit in microseconds
@@ -81,7 +82,7 @@ impl PowerVec {
         WindowEnergyIter::new(self, frame_size, samplerate_opt, duration)
     }
 
-    pub(crate) fn duration(&self, start_stop_idx: Option<(usize, usize)>, samplerate_opt: Option<f64>) -> Timestamp {
+    pub(crate) fn duration(&self, start_stop_idx: Option<(usize, usize)>, samplerate_opt: Option<f64>) -> f64 {
         match self {
             Self::Constant(data) => {
                 let samplerate = samplerate_opt.unwrap();
@@ -97,6 +98,66 @@ impl PowerVec {
                 } else {
                     data[data.len() - 1].0 - data[0].0
                 }
+            }
+        }
+    }
+
+    pub(crate) fn fit_start_stop_to_duration(&self, initial_start_idx: usize, initial_stop_idx: usize, duration: f64, samplerate_opt: Option<f64>) -> (usize, usize) {
+        let actual_duration = self.duration(Some((initial_start_idx, initial_stop_idx)), samplerate_opt);
+        info!("Duration {actual_duration}");
+        let duration_diff = duration - actual_duration;
+        if duration_diff.abs() > duration * 0.1 {
+            info!("Stopping fitting, duration deviation is too big");
+            // if the difference between start and end is too big - this is done so external programs can detect that the measurement is not valid
+            return (initial_start_idx, initial_stop_idx);
+        }
+        match self {
+            PowerVec::Constant(data) => {
+                let samplerate = samplerate_opt.unwrap();
+                let sample_offset = ((duration_diff / 2.) * samplerate).round() as i64;
+                let start_idx = if initial_start_idx as i64 - sample_offset < 0 {
+                    0
+                } else {
+                    initial_start_idx as i64 - sample_offset
+                };
+                let stop_idx = if sample_offset + initial_stop_idx as i64 >= data.len() as i64 {
+                    (data.len() - 1) as i64
+                } else {
+                    initial_stop_idx as i64 + sample_offset
+                };
+                (start_idx as usize, stop_idx as usize)
+            }
+            PowerVec::Variable(data) => {
+                fn find_timestamp_from_pos(data: &Vec<(f64, f64)>, start_idx: usize, stop_timestamp: Timestamp) -> usize {
+                    let (mut current_timestamp, _) = data[start_idx];
+                    let mut current_idx = start_idx;
+                    if current_timestamp < stop_timestamp {
+                        while current_timestamp <= stop_timestamp {
+                            if current_idx == data.len() -1 {
+                               break;
+                            }
+                            current_idx += 1;
+                            (current_timestamp, _) = data[current_idx];
+                        }
+                    } else {
+                        while current_timestamp >= stop_timestamp {
+                            if current_idx == 0 {
+                                break;
+                            }
+                            current_idx -= 1;
+                            (current_timestamp, _) = data[current_idx];
+                        }
+                    }
+                    current_idx
+                }
+
+                let (start_timestamp, _) = data[initial_start_idx];
+                let (end_timestamp, _) = data[initial_stop_idx];
+                let start_idx = find_timestamp_from_pos(
+                    data, initial_start_idx, start_timestamp - duration_diff / 2.);
+                let stop_idx = find_timestamp_from_pos(
+                    data, initial_stop_idx, end_timestamp + duration_diff / 2.);
+                (start_idx, stop_idx)
             }
         }
     }

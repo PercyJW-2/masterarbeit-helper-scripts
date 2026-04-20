@@ -1,5 +1,6 @@
 use bpaf::Bpaf;
 use std::{fmt::Display, path::PathBuf, str::FromStr};
+use std::time::Duration;
 use serde::Serialize;
 
 const DEFAULT_THRESHOLD: f64 = 1. / 10.;
@@ -161,6 +162,11 @@ pub(crate) struct Args {
     /// store results in results.yaml file
     #[bpaf(short, long)]
     pub(crate) results_storage: bool,
+    /// provide an estimated duration to fit the detected action onto this duration
+    /// normal data detection is still done, but the window is now enlarged or reduced to fit this duration
+    /// Unit is in seconds
+    #[bpaf(short, long)]
+    pub(crate) estimated_duration: Option<f64>,
     /// Settings for firmware measurements
     #[bpaf(external, fallback(FirmwareEnum::None))]
     pub(crate) firmware_enum: FirmwareEnum,

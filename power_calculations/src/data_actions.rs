@@ -40,7 +40,8 @@ pub(crate) fn calculate_results(
             pred_max_min,
             frame_size,
             sample_rate,
-            args.plot_intermediates
+            args.plot_intermediates,
+            args.estimated_duration,
         );
         idx = Some((start_idx, end_idx));
     } else {
@@ -50,7 +51,8 @@ pub(crate) fn calculate_results(
             pred_max_min,
             frame_size,
             sample_rate,
-            args.plot_intermediates
+            args.plot_intermediates,
+            args.estimated_duration,
         );
     }
     save_vec_to_npy(&power, args.output_path.clone(), output_file_name)?;
@@ -155,6 +157,7 @@ pub(crate) fn cut_data_start_and_end(
     window_size: f64,
     samplerate_opt: Option<f64>,
     plot: bool,
+    estimated_duration_opt: Option<f64>
 ) -> (PowerVec, f64, f64) {
     let (start_idx, stop_idx, max, idle_value) = find_data_start_and_end(
         &data,
@@ -163,6 +166,7 @@ pub(crate) fn cut_data_start_and_end(
         window_size,
         samplerate_opt,
         plot,
+        estimated_duration_opt,
     );
     data = data.cut_data(start_idx, stop_idx);
     (data, max, idle_value)
@@ -178,6 +182,7 @@ pub(crate) fn find_data_start_and_end(
     window_size: f64,
     samplerate_opt: Option<f64>,
     plot: bool,
+    estimated_duration_opt: Option<f64>,
 ) -> (usize, usize, f64, f64) {
     let (max, idle_value) = if let Some((p_max, p_min)) = pred_max_min {
         (p_max, p_min)
@@ -202,7 +207,12 @@ pub(crate) fn find_data_start_and_end(
             trigger_value,
             plot,
         );
-    (start_idx, end_idx, max, idle_value)
+    if let Some(estimated_duration) = estimated_duration_opt {
+        let (start, stop) = data.fit_start_stop_to_duration(start_idx, end_idx, estimated_duration, samplerate_opt);
+        (start, stop, max, idle_value)
+    } else {
+        (start_idx, end_idx, max, idle_value)
+    }
 }
 
 pub(crate) fn calc_energy(data: &PowerVec, samplerate_opt: Option<f64>, start_end_idx: Option<(usize, usize)>) -> f64 {
