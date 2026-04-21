@@ -192,7 +192,7 @@ def start_run(
                 count += 1
                 duration_sum += result["firmware_results"]["duration"]
             duration = duration_sum / count
-        planned_duration = int(args.duration + 1)
+        planned_duration = int(args.duration + 2)
         duration_diff = abs(duration - planned_duration)
         if duration_diff > planned_duration * 0.1:
             logger.info(
