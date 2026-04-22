@@ -110,7 +110,7 @@ def start_run(
     args: argparse.Namespace,
     storage_path: Path,
     pico_samplerate_override: None | int = None,
-):
+) -> int:
     logger.debug("building data collection command")
     if pico_samplerate_override is None:
         pico_samplerate_override = args.picoscope_samplerate
@@ -168,37 +168,44 @@ def start_run(
             msmt.unlink()
         return False
 
+    invalid_runs = 0
+    planned_duration = int(args.duration + 2)
+
     for run_number in range(args.run_count):
-        run_path = storage_path / str(run_number)
-        skip_power_calculation = execute_run(run_number, run_path)
-        if skip_power_calculation:
-            continue
-        logger.debug("Checking run duration")
-        duration = 0
-        with (run_path / "results.yaml").open() as result_file:
-            result = yaml.safe_load(result_file)
-            count = 0
-            duration_sum = 0
-            if result["jetson_results"] is not None:
-                count += 1
-                duration_sum += result["jetson_results"]["duration"]
-            if result["shelly_results"] is not None:
-                count += 1
-                duration_sum += result["shelly_results"]["duration"]
-            if result["oscilloscope_results"] is not None:
-                count += 1
-                duration_sum += result["oscilloscope_results"]["results"]["duration"]
-            if result["firmware_results"] is not None:
-                count += 1
-                duration_sum += result["firmware_results"]["duration"]
-            duration = duration_sum / count
-        planned_duration = int(args.duration + 2)
-        duration_diff = abs(duration - planned_duration)
-        if duration_diff > planned_duration * 0.1:
-            logger.info(
-                "run duration is too long -> scrapping last run and starting run again"
-            )
-            _ = execute_run(run_number, run_path)
+        duration_diff = planned_duration + 1
+        while duration_diff > planned_duration * 0.1:
+            if duration_diff < planned_duration:
+                logger.info("Run was invalid, doing run again")
+                invalid_runs += 1
+            run_path = storage_path / str(run_number)
+            skip_power_calculation = execute_run(run_number, run_path)
+            if skip_power_calculation:
+                continue
+            logger.debug("Checking run duration")
+            duration = 0
+            with (run_path / "results.yaml").open() as result_file:
+                result = yaml.safe_load(result_file)
+                count = 0
+                duration_sum = 0
+                if result["jetson_results"] is not None:
+                    count += 1
+                    duration_sum += result["jetson_results"]["duration"]
+                if result["shelly_results"] is not None:
+                    count += 1
+                    duration_sum += result["shelly_results"]["duration"]
+                if result["oscilloscope_results"] is not None:
+                    count += 1
+                    duration_sum += result["oscilloscope_results"]["results"][
+                        "duration"
+                    ]
+                if result["firmware_results"] is not None:
+                    count += 1
+                    duration_sum += result["firmware_results"]["duration"]
+                duration = duration_sum / count
+            planned_duration = int(args.duration + 2)
+            duration_diff = abs(duration - planned_duration)
+
+    return invalid_runs
 
 
 if __name__ == "__main__":
@@ -229,11 +236,14 @@ if __name__ == "__main__":
         end = time.time()
         args.duration = end - start
 
+    invalid_runs = 0
     if args.pico_samplerate_sweep:
         for directory in [x for x in storage_path.iterdir() if x.is_dir()]:
             folder_name = directory.name
             samplerate = int(folder_name[:-3])
             logger.info(f"Starting Measurements with {samplerate}S/s")
-            start_run(args, directory, samplerate)
+            invalid_runs += start_run(args, directory, samplerate)
     else:
-        start_run(args, storage_path)
+        invalid_runs = start_run(args, storage_path)
+
+    (storage_path / f"invalid_runs_{invalid_runs}").touch()
