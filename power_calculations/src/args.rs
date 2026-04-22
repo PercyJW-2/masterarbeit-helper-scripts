@@ -1,6 +1,5 @@
 use bpaf::Bpaf;
 use std::{fmt::Display, path::PathBuf, str::FromStr};
-use std::time::Duration;
 use serde::Serialize;
 
 const DEFAULT_THRESHOLD: f64 = 1. / 10.;

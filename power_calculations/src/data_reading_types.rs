@@ -128,7 +128,7 @@ impl PowerVec {
                 (start_idx as usize, stop_idx as usize)
             }
             PowerVec::Variable(data) => {
-                fn find_timestamp_from_pos(data: &Vec<(f64, f64)>, start_idx: usize, stop_timestamp: Timestamp) -> usize {
+                fn find_timestamp_from_pos(data: &[(f64, f64)], start_idx: usize, stop_timestamp: Timestamp) -> usize {
                     let (mut current_timestamp, _) = data[start_idx];
                     let mut current_idx = start_idx;
                     if current_timestamp < stop_timestamp {
