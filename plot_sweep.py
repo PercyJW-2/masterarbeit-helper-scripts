@@ -137,16 +137,26 @@ if __name__ == "__main__":
         normalized_energies.append(normalized_energy)
 
     fig, axs = plt.subplots(1, 3)
+    axs: list[Axes] = axs
     plot_data(energies, axs[0])
     axs[0].set_ylabel("Energy (J)")
-    plot_data(durations, axs[1])
-    axs[1].set_ylabel("Duration (s)")
-    plot_data(normalized_energies, axs[2])
-    axs[2].set_ylabel("Watt (J/s)")
+    axs[0].set_title("Measurement Energies")
+    # plot_data(durations, axs[1])
+    # axs[1].set_ylabel("Duration (s)")
+    plot_data(normalized_energies, axs[1])
+    axs[1].set_ylabel("Watt (J/s)")
+    axs[1].set_title("Average Power")
+    energies = np.array(energies)
+    print(energies.shape)
+    axs[2].bar(range(1, energies.shape[0] + 1), np.std(energies, axis=1))
+    axs[2].set_ylabel("Energy (J)")
+    axs[2].set_title("Measurement Standard deviation")
     for ax in axs:
         ax.tick_params("x", rotation=90)
         ax.xaxis.grid(True)
         ax.yaxis.grid(True)
-        ax.set_xticks(np.arange(1, len(samplerates) + 1), labels=samplerates)
+        ax.set_xticks(
+            np.arange(1, len(samplerates) + 1), labels=[str(x) for x in samplerates]
+        )
         ax.set_xlabel("Samplerate")
     plt.show()
