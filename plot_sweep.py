@@ -19,6 +19,11 @@ parser.add_argument(
     help="This estimates each samplerate by loading the most detailed one and removing samples until each samplerate is reached",
     action="store_true",
 )
+parser.add_argument(
+    "--simulate_slow_samplerates",
+    help="This estimates samplerates below 50S/s, as picoscope cannot measure lower than that",
+    action="store_true",
+)
 
 
 def calculate_energy(data: np.ndarray, samplerate):
@@ -60,18 +65,18 @@ def load_all_data(
 
 
 def estimate_data(
-    path: Path, constant_cut: bool
-) -> Dict[int, tuple[list[float], list[float]]]:
-    results = dict()
-    samplerates = [int(x.name[:-3]) for x in path.iterdir() if x.is_dir()]
-    samplerates.sort()
-
-    max_samplerate_folder = path / f"{samplerates[-1]}Sps"
+    path: Path,
+    constant_cut: bool,
+    samplerates: list[int],
+    original_samplerate: int,
+    results: Dict[int, tuple[list[float], list[float]]],
+) -> None:
+    max_samplerate_folder = path / f"{original_samplerate}Sps"
     for run in [x for x in max_samplerate_folder.iterdir() if x.is_dir()]:
         data = np.load((run / "oscilloscope.npy").as_posix())
         duration = 0.0
         if constant_cut:
-            data = data[: int(60 / (1 / samplerates[-1]))]
+            data = data[: int(60 / (1 / original_samplerate))]
             duration = 60
         else:
             with (run / "results.yaml").open() as result_file:
@@ -82,20 +87,28 @@ def estimate_data(
                 data = data[start_stop_idx[0] : start_stop_idx[1]]
                 duration = result["oscilloscope_results"]["results"]["duration"]
         # loaded data of run
-        for samplerate in samplerates:
-            skip_amount = round(samplerates[-1] / samplerate)
-            actual_samplerate = round(samplerates[-1] / skip_amount)
-            print(
-                f"skip_amount: {skip_amount} actual_samplerate: {actual_samplerate} samplerate: {samplerate} max_samplerate: {samplerates[-1]}"
-            )
-            if actual_samplerate not in results:
-                results[actual_samplerate] = ([], [])
-            results[actual_samplerate][0].append(
-                calculate_energy(data[::skip_amount], actual_samplerate)
-            )
-            results[actual_samplerate][1].append(duration)
+        simulate_samplerates(samplerates, original_samplerate, data, duration, results)
 
-    return results
+
+def simulate_samplerates(
+    samplerates: list[int],
+    original_samplerate: int,
+    data: np.ndarray,
+    duration: float,
+    result_dict: Dict[int, tuple[list[float], list[float]]],
+) -> None:
+    for samplerate in samplerates:
+        skip_amount = round(original_samplerate / samplerate)
+        actual_samplerate = round(original_samplerate / skip_amount)
+        print(
+            f"skip_amount: {skip_amount} actual_samplerate: {actual_samplerate} samplerate: {samplerate} max_samplerate: {original_samplerate}"
+        )
+        if actual_samplerate not in result_dict:
+            result_dict[actual_samplerate] = ([], [])
+        result_dict[actual_samplerate][0].append(
+            calculate_energy(data[::skip_amount], actual_samplerate)
+        )
+        result_dict[actual_samplerate][1].append(duration)
 
 
 def plot_as_boxplot(data: list[list[float]], ax: Axes):
@@ -118,11 +131,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
     path = Path(args.path)
 
-    results = None
+    results = dict()
+    samplerates = [int(x.name[:-3]) for x in path.iterdir() if x.is_dir()]
+    samplerates.sort()
+
     if args.virtual_samplerates:
-        results = estimate_data(path, args.constant_cut)
+        estimate_data(path, args.constant_cut, samplerates, samplerates[-1], results)
     else:
         results = load_all_data(path, args.constant_cut)
+    if args.simulate_slow_samplerates:
+        estimate_data(path, args.constant_cut, [1, 5, 10, 25], 50, results)
+
     samplerates = list(results.keys())
     samplerates.sort()
 
@@ -143,14 +162,44 @@ if __name__ == "__main__":
     axs[0].set_title("Measurement Energies")
     # plot_data(durations, axs[1])
     # axs[1].set_ylabel("Duration (s)")
-    plot_data(normalized_energies, axs[1])
-    axs[1].set_ylabel("Watt (J/s)")
-    axs[1].set_title("Average Power")
+    # plot_data(normalized_energies, axs[1])
+    # axs[1].set_ylabel("Watt (J/s)")
+    # axs[1].set_title("Average Power")
     energies = np.array(energies)
-    print(energies.shape)
-    axs[2].bar(range(1, energies.shape[0] + 1), np.std(energies, axis=1))
-    axs[2].set_ylabel("Energy (J)")
-    axs[2].set_title("Measurement Standard deviation")
+    """axs[1].bar(
+        range(1, energies.shape[0] + 1),
+        (
+            np.std(
+                energies - np.median(energies, axis=1, keepdims=True), axis=1, ddof=1
+            )
+            / np.mean(energies, axis=1)
+        )
+        * 100,
+        fill=False,
+    )
+    axs[1].set_ylabel("Percent (%)")
+    axs[1].set_title("Measurement Std in Percent")"""
+    q1 = np.percentile(energies, 25, axis=1)
+    q3 = np.percentile(energies, 75, axis=1)
+    quantile_deviation = (q3 - q1) / 2
+    axs[1].bar(
+        range(1, energies.shape[0] + 1),
+        100 * quantile_deviation / np.mean(energies, axis=1),
+        fill=False,
+    )
+    axs[1].set_ylabel("Percent (%)")
+    axs[1].set_title("Measurement Qartile Deviation in Percent")
+    median_avg = np.mean(np.median(energies, axis=1))  # baseline
+    means = np.mean(energies, axis=1)
+    baseline_diff = means - median_avg
+    baseline_diff_percentages = (baseline_diff / median_avg) * 100
+    axs[2].bar(
+        range(1, baseline_diff_percentages.shape[0] + 1),
+        baseline_diff_percentages,
+        fill=False,
+    )
+    axs[2].set_ylabel("Percent (%)")
+    axs[2].set_title("Deviation Samplerate mean to mean of all medians")
     for ax in axs:
         ax.tick_params("x", rotation=90)
         ax.xaxis.grid(True)
@@ -158,5 +207,5 @@ if __name__ == "__main__":
         ax.set_xticks(
             np.arange(1, len(samplerates) + 1), labels=[str(x) for x in samplerates]
         )
-        ax.set_xlabel("Samplerate")
+        ax.set_xlabel("Samplerate (S/s)")
     plt.show()
