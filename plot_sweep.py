@@ -60,7 +60,8 @@ def load_all_data(
                     ]
                     energy.append(result["energy"])
                     duration.append(result["duration"])
-        results[samplerate] = (energy, duration)
+        if len(energy) != 0:
+            results[samplerate] = (energy, duration)
     return results
 
 
