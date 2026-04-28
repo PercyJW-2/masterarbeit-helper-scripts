@@ -5,6 +5,7 @@ import yaml
 import argparse
 from pathlib import Path
 import numpy as np
+import scipy.signal
 
 parser = argparse.ArgumentParser("Plot samplerate sweep done with measurement suite")
 
@@ -104,10 +105,14 @@ def simulate_samplerates(
         print(
             f"skip_amount: {skip_amount} actual_samplerate: {actual_samplerate} samplerate: {samplerate} max_samplerate: {original_samplerate}"
         )
+        sos = scipy.signal.butter(
+            1, actual_samplerate / 2, "lp", fs=original_samplerate, output="sos"
+        )
+        filtered_data = scipy.signal.sosfilt(sos, data)
         if actual_samplerate not in result_dict:
             result_dict[actual_samplerate] = ([], [])
         result_dict[actual_samplerate][0].append(
-            calculate_energy(data[::skip_amount], actual_samplerate)
+            calculate_energy(filtered_data[::skip_amount], actual_samplerate)
         )
         result_dict[actual_samplerate][1].append(duration)
 
