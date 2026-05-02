@@ -162,6 +162,7 @@ if __name__ == "__main__":
         normalized_energies.append(normalized_energy)
 
     fig, axs = plt.subplots(1, 3)
+    fig.set_size_inches((20, 10))
     axs: list[Axes] = axs
     plot_data(energies, axs[0])
     axs[0].set_ylabel("Energy (J)")
@@ -214,4 +215,5 @@ if __name__ == "__main__":
             np.arange(1, len(samplerates) + 1), labels=[str(x) for x in samplerates]
         )
         ax.set_xlabel("Samplerate (S/s)")
+    fig.savefig("figure.pdf", format="pdf")
     plt.show()
