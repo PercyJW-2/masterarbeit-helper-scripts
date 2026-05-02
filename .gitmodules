@@ -1,3 +1,3 @@
-[submodule "power_calculations/rev_lines"]
-	path = power_calculations/rev_lines
-	url = https://github.com/mjc-gh/rev_lines
+[submodule "power_calculations/rust-matplotlib"]
+	path = power_calculations/rust-matplotlib
+	url = https://github.com/Chris00/rust-matplotlib/tree/dev
