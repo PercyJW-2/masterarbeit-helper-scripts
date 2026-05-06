@@ -127,7 +127,7 @@ def start_run(
         command += f" {duration_override}"
     data_collection_command = f"urecs-data-collector -s={storage_path.as_posix()} -d={int(duration_override + 1)}s -c='{command}'"
     if args.jetson:
-        data_collection_command += f" jetson --address={args.jetson_address} --data-port=8000 --control-port=8081"
+        data_collection_command += f" jetson --address={args.jetson_address} --data-port=8080 --control-port=8081"
     if args.firmware:
         data_collection_command += f" firmware --address={args.firmware_address}"
     if args.fast_firmware:

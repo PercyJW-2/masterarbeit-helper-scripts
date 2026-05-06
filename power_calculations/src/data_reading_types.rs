@@ -106,11 +106,11 @@ impl PowerVec {
         let actual_duration = self.duration(Some((initial_start_idx, initial_stop_idx)), samplerate_opt);
         info!("Duration {actual_duration}");
         let duration_diff = duration - actual_duration;
-        if duration_diff.abs() > duration * 0.1 {
+        /*if duration_diff.abs() > duration * 0.1 {
             info!("Stopping fitting, duration deviation is too big");
             // if the difference between start and end is too big - this is done so external programs can detect that the measurement is not valid
             return (initial_start_idx, initial_stop_idx);
-        }
+        }*/
         match self {
             PowerVec::Constant(data) => {
                 let samplerate = samplerate_opt.unwrap();
