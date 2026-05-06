@@ -104,28 +104,40 @@ parser.add_argument(
     help="Use this mode to calculate the energy of the complete measurement without cutting the start or end",
     action="store_true",
 )
+parser.add_argument(
+    "--duration_sweep",
+    help="In the measurement_path folder there are multiple folders that have the format Xs which are used to determine the measurement duration",
+    action="store_true",
+)
 
 
 def start_run(
     args: argparse.Namespace,
     storage_path: Path,
     pico_samplerate_override: None | int = None,
+    duration_override: None | int = None,
 ) -> int:
     logger.debug("building data collection command")
     if pico_samplerate_override is None:
         pico_samplerate_override = args.picoscope_samplerate
-    data_collection_command = f"urecs-data-collector -s={storage_path.as_posix()} -d={int(args.duration + 1)}s -c='{args.command}'"
+    command = args.command
+    if duration_override is None:
+        duration_override = args.duration
+    else:
+        command += f" {duration_override}"
+    data_collection_command = f"urecs-data-collector -s={storage_path.as_posix()} -d={int(duration_override + 1)}s -c='{command}'"
     if args.jetson:
         data_collection_command += f" jetson --address={args.jetson_address} --data-port=8000 --control-port=8081"
     if args.firmware:
         data_collection_command += f" firmware --address={args.firmware_address}"
     if args.fast_firmware:
-        data_collection_command += f" fast-firmware --address={args.firmware_address} --data-port=3000 --channel={args.fast_firmware_channel}, --sample-rate={args.fast_firmware_samplerate}"
+        data_collection_command += f" fast-firmware --address={args.firmware_address} --data-port=3000 --channel={args.fast_firmware_channel} --sample-rate={args.fast_firmware_samplerate}"
     if args.shelly:
         data_collection_command += f" shelly-plug --address={args.shelly_address}"
     if args.picoscope:
         data_collection_command += f" usb-oscilloscope --sample-rate={pico_samplerate_override} --measurement-type={args.picoscope_measurement_type}"
-    power_calculation_command = f"power_calculations -m={storage_path.as_posix()} -c -r --estimated-duration={int(args.duration + 2)}"
+    logger.info(data_collection_command)
+    power_calculation_command = f"power_calculations -m={storage_path.as_posix()} -c -r --estimated-duration={int(duration_override + 2)}"
     power_calculation_methods = ""
     power_cut_section_command = ""
     if args.use_complete_measurement:
@@ -169,7 +181,7 @@ def start_run(
         return False
 
     invalid_runs = 0
-    planned_duration = int(args.duration + 2)
+    planned_duration = int(duration_override + 2)
 
     for run_number in range(args.run_count):
         duration_diff = planned_duration + 1
@@ -229,7 +241,10 @@ if __name__ == "__main__":
         logger.error("Choose a folder that exists to store each run")
         exit(-2)
 
-    if args.duration is None:
+    if args.pico_samplerate_sweep and args.duration_sweep:
+        logger.error("Only one sweep type is possible at the same time")
+
+    if args.duration is None and not args.duration_sweep:
         logger.info("Starting Dry-Run to determine duration")
         start = time.time()
         subprocess.run(args.command, shell=True)
@@ -243,6 +258,12 @@ if __name__ == "__main__":
             samplerate = int(folder_name[:-3])
             logger.info(f"Starting Measurements with {samplerate}S/s")
             invalid_runs += start_run(args, directory, samplerate)
+    elif args.duration_sweep:
+        for directory in [x for x in storage_path.iterdir() if x.is_dir()]:
+            folder_name = directory.name
+            duration = int(folder_name[:-1])
+            logger.info(f"Starting Measurements with {duration}s")
+            invalid_runs += start_run(args, directory, None, duration)
     else:
         invalid_runs = start_run(args, storage_path)
 
