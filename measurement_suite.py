@@ -214,7 +214,7 @@ def start_run(
                     count += 1
                     duration_sum += result["firmware_results"]["duration"]
                 duration = duration_sum / count
-            planned_duration = int(args.duration + 2)
+            planned_duration = int(duration_override + 2)
             duration_diff = abs(duration - planned_duration)
 
     return invalid_runs
@@ -259,6 +259,7 @@ if __name__ == "__main__":
             logger.info(f"Starting Measurements with {samplerate}S/s")
             invalid_runs += start_run(args, directory, samplerate)
     elif args.duration_sweep:
+        args.duration = 0
         for directory in [x for x in storage_path.iterdir() if x.is_dir()]:
             folder_name = directory.name
             duration = int(folder_name[:-1])
