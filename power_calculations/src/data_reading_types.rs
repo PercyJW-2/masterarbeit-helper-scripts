@@ -128,11 +128,11 @@ impl PowerVec {
                 (start_idx as usize, stop_idx as usize)
             }
             PowerVec::Variable(data) => {
-                fn find_timestamp_from_pos(data: &[(f64, f64)], start_idx: usize, stop_timestamp: Timestamp) -> usize {
+                fn find_timestamp_from_pos(data: &[(f64, f64)], start_idx: usize, stop_timestamp: Timestamp) -> (usize, f64) {
                     let (mut current_timestamp, _) = data[start_idx];
                     let mut current_idx = start_idx;
                     if current_timestamp < stop_timestamp {
-                        while current_timestamp <= stop_timestamp {
+                        while current_timestamp < stop_timestamp {
                             if current_idx == data.len() -1 {
                                break;
                             }
@@ -140,7 +140,7 @@ impl PowerVec {
                             (current_timestamp, _) = data[current_idx];
                         }
                     } else {
-                        while current_timestamp >= stop_timestamp {
+                        while current_timestamp > stop_timestamp {
                             if current_idx == 0 {
                                 break;
                             }
@@ -148,16 +148,44 @@ impl PowerVec {
                             (current_timestamp, _) = data[current_idx];
                         }
                     }
-                    current_idx
+                    (current_idx, current_timestamp)
                 }
 
                 let (start_timestamp, _) = data[initial_start_idx];
                 let (end_timestamp, _) = data[initial_stop_idx];
-                let start_idx = find_timestamp_from_pos(
+                let (start_idx, start_timestamp_fit) = find_timestamp_from_pos(
                     data, initial_start_idx, start_timestamp - duration_diff / 2.);
-                let stop_idx = find_timestamp_from_pos(
+                let (stop_idx, stop_timestamp_fit) = find_timestamp_from_pos(
                     data, initial_stop_idx, end_timestamp + duration_diff / 2.);
-                (start_idx, stop_idx)
+
+                let fit_duration = stop_timestamp_fit - start_timestamp_fit;
+
+                let fit_dur_diff = (fit_duration - duration).abs();
+                let end_ext_diff = ((data[stop_idx + 1].0 - start_timestamp_fit) - duration).abs();
+                let start_ext_diff = ((stop_timestamp_fit - data[start_idx - 1].0) - duration).abs();
+                let both_ext_diff = ((data[stop_idx + 1].0 - data[start_idx - 1].0) - duration).abs();
+                let end_red_diff = ((data[stop_idx - 1].0 - start_timestamp_fit) - duration).abs();
+                let start_red_diff = ((stop_timestamp_fit - data[start_idx + 1].0) - duration).abs();
+                let both_red_diff = ((data[stop_idx - 1].0 - data[start_idx + 1].0) - duration).abs();
+                info!("fit duration {fit_dur_diff}; end ext duration {end_ext_diff}; start ext duration {start_ext_diff}; both ext duration {both_ext_diff}");
+                info!("end red duration {end_red_diff}; start red duration {start_red_diff}; both red duration {both_red_diff}");
+                let min_diff = [fit_dur_diff, end_ext_diff, start_ext_diff, both_ext_diff, end_red_diff, start_red_diff, both_red_diff]
+                    .into_iter().reduce(f64::min).unwrap();
+                if min_diff == fit_dur_diff {
+                    (start_idx, stop_idx)
+                } else if min_diff == end_ext_diff {
+                    (start_idx, stop_idx + 1)
+                } else if min_diff == start_ext_diff {
+                    (start_idx - 1, stop_idx)
+                } else if min_diff == both_ext_diff {
+                    (start_idx - 1, stop_idx + 1)
+                } else if min_diff == end_red_diff {
+                    (start_idx, stop_idx - 1)
+                } else if min_diff == start_red_diff {
+                    (start_idx + 1, stop_idx)
+                } else {
+                    (start_idx + 1, stop_idx - 1)
+                }
             }
         }
     }
