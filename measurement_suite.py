@@ -155,17 +155,22 @@ def start_run(
     if args.jetson:
         power_calculation_methods += f" jetson{power_cut_section_command}"
 
-    def execute_run(run_number: int, run_path) -> bool:
+    def execute_run(run_number: int, run_path) -> tuple[bool, bool]:
         if not run_path.exists():
             run_path.mkdir()
         logger.info(f"Starting run number {run_number}")
-        subprocess.run(data_collection_command, shell=True)
+        p = subprocess.run(data_collection_command, shell=True)
+        try:
+            p.check_returncode()
+        except subprocess.CalledProcessError:
+            logger.error("Recording Failed: retry engaged")
+            return False, True
         if args.skip_power_calculation:
             logger.info("Moving recorded data into measurement folder")
             output_files = list(storage_path.glob("*.parquet"))
             for file in output_files:
                 file.move(run_path)
-            return True
+            return True, False
         logger.info("Starting power calculation")
         iteration_command = (
             power_calculation_command
@@ -173,24 +178,32 @@ def start_run(
             + power_calculation_methods
         )
         logger.debug(f"iteration_command: {iteration_command}")
-        subprocess.run(iteration_command, shell=True)
+        p = subprocess.run(iteration_command, shell=True)
+        try:
+            p.check_returncode()
+        except subprocess.CalledProcessError:
+            logger.error("Power Calculation Failed: retry engaged")
+            return False, True
         logger.debug("Cleaning previous measurements")
         msmts = list(storage_path.glob("*.parquet"))
         for msmt in msmts:
             msmt.unlink()
-        return False
+        return False, False
 
     invalid_runs = 0
     planned_duration = int(duration_override + 2)
 
     for run_number in range(args.run_count):
         duration_diff = planned_duration + 1
-        while duration_diff > planned_duration * 0.1:
+        while duration_diff > planned_duration * 0.1 and invalid_runs < 15:
             if duration_diff < planned_duration:
                 logger.info("Run was invalid, doing run again")
                 invalid_runs += 1
             run_path = storage_path / str(run_number)
-            skip_power_calculation = execute_run(run_number, run_path)
+            skip_power_calculation, run_failed = execute_run(run_number, run_path)
+            if run_failed:
+                duration_diff = planned_duration * 0.99
+                continue
             if skip_power_calculation:
                 continue
             logger.debug("Checking run duration")

@@ -25,6 +25,11 @@ parser.add_argument(
     help="This estimates samplerates below 50S/s, as picoscope cannot measure lower than that",
     action="store_true",
 )
+parser.add_argument(
+    "--fit_max_energy",
+    help="Recalculates max energy by searching for it",
+    action="store_true",
+)
 
 
 def calculate_energy(data: np.ndarray, samplerate):
@@ -32,7 +37,7 @@ def calculate_energy(data: np.ndarray, samplerate):
 
 
 def load_all_data(
-    path: Path, constant_cut: bool
+    path: Path, constant_cut: bool, search_max_energy: bool
 ) -> Dict[int, tuple[list[float], list[float], list[float]]]:
     results: Dict[int, tuple[list[float], list[float], list[float]]] = dict()
     for folder in [x for x in path.iterdir() if x.is_dir()]:
@@ -42,7 +47,7 @@ def load_all_data(
         duration = []
         sample_count = []
         for run in [x for x in folder.iterdir() if x.is_dir()]:
-            if constant_cut:
+            if constant_cut and not search_max_energy:
                 data = np.load((run / "oscilloscope.npy").as_posix())
                 samples = int(60 / (1 / samplerate))
                 print(
@@ -52,6 +57,32 @@ def load_all_data(
                 data = data[: int(60 / (1 / samplerate))]
                 energy.append(calculate_energy(data, samplerate))
                 duration.append(samples / samplerate)
+                del data
+            elif search_max_energy:
+                data = np.load((run / "oscilloscope.npy").as_posix())
+                samples = 0
+                previous_energy = 0
+                if constant_cut:
+                    samples = int(60 / (1 / samplerate))
+                    previous_energy = calculate_energy(data[:samples], samplerate)
+                else:
+                    with (run / "results.yaml").open() as result_file:
+                        result = yaml.safe_load(result_file)["oscilloscope_results"][
+                            "results"
+                        ]
+                        previous_energy = result["energy"]
+                        samples = (
+                            result["start_stop_idx"][1] - result["start_stop_idx"][0]
+                        )
+                current_max = 0
+                for i in np.arange(data.shape[0] - samples):
+                    nrg = calculate_energy(data[i : i + samples], samplerate)
+                    if nrg > current_max:
+                        current_max = nrg
+                print("Energy Diff: ", abs(current_max - previous_energy))
+                energy.append(current_max)
+                duration.append(samples / samplerate)
+                sample_count.append(samples)
                 del data
             else:
                 result_path = run / "results.yaml"
@@ -81,10 +112,8 @@ def estimate_data(
     max_samplerate_folder = path / f"{original_samplerate}Sps"
     for run in [x for x in max_samplerate_folder.iterdir() if x.is_dir()]:
         data = np.load((run / "oscilloscope.npy").as_posix())
-        duration = 0.0
         if constant_cut:
             data = data[: int(60 / (1 / original_samplerate))]
-            duration = 60
         else:
             with (run / "results.yaml").open() as result_file:
                 result = yaml.safe_load(result_file)
@@ -92,16 +121,14 @@ def estimate_data(
                     "start_stop_idx"
                 ]
                 data = data[start_stop_idx[0] : start_stop_idx[1]]
-                duration = result["oscilloscope_results"]["results"]["duration"]
         # loaded data of run
-        simulate_samplerates(samplerates, original_samplerate, data, duration, results)
+        simulate_samplerates(samplerates, original_samplerate, data, results)
 
 
 def simulate_samplerates(
     samplerates: list[int],
     original_samplerate: int,
     data: np.ndarray,
-    duration: float,
     result_dict: Dict[int, tuple[list[float], list[float], list[float]]],
 ) -> None:
     for samplerate in samplerates:
@@ -152,7 +179,7 @@ if __name__ == "__main__":
     if args.virtual_samplerates:
         estimate_data(path, args.constant_cut, samplerates, samplerates[-1], results)
     else:
-        results = load_all_data(path, args.constant_cut)
+        results = load_all_data(path, args.constant_cut, args.search_max_energy)
     if args.simulate_slow_samplerates:
         estimate_data(path, args.constant_cut, [1, 5, 10, 25], 50, results)
 
@@ -215,7 +242,6 @@ if __name__ == "__main__":
         np.array(range(1, energies.shape[0] + 1)),
         100 * np.std(energies, axis=1) / np.mean(energies, axis=1),
         fill=False,
-        hatch="////",
         label="Standard Deviation",
     )
     axs[1].bar(
@@ -240,11 +266,16 @@ if __name__ == "__main__":
     axs[2].set_ylabel("Percent (%)")
     axs[2].set_title("Deviation Samplerate mean to mean of all medians")
     energy_per_sample_median = np.median(np.array(energy_per_sample), axis=1)
+    # for samplerate in samplerates[:-10]:
+    #     print(f"\\rotatebox{{90}}{{\\SI{{{samplerate}}}{{S/\\second}}}} &")
+    for eps in energy_per_sample_median[:-10]:
+        print(f"\\rotatebox{{90}}{{\\SI{{{eps:.2e}}}{{\\joule/S}}}} &")
+    print()
+    for eps in energy_per_sample_median[-10:]:
+        print(f"\\rotatebox{{90}}{{\\SI{{{eps:.2e}}}{{\\joule/S}}}} &")
     stats = [
-        f"samplerate: {x}, e_per_s: {y:.2e}, median duration: {np.median(z):.2f}, sample count {np.median(a)}"
-        for x, y, z, a in zip(
-            samplerates, energy_per_sample_median, durations, samplecounts
-        )
+        f", e_per_s: {y:.2e}, median duration: {np.median(z):.2f}, sample count {np.median(a)}"
+        for y, z, a in zip(energy_per_sample_median, durations, samplecounts)
     ]
     for stat in stats:
         print(stat)
