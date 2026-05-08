@@ -119,6 +119,8 @@ if __name__ == "__main__":
 
     fig.set_size_inches((20, 10))
 
+    median_energy_values = []
+
     for ax, duration in zip(axs_l, durations):
         duration_data = data[duration]
         transposed_data = convert_run_data(duration_data)
@@ -127,13 +129,33 @@ if __name__ == "__main__":
         energy_data = np.array(transposed_data[1])
         joule_per_second_data = energy_data / duration_data
 
-        median_jps = np.median(joule_per_second_data, axis=1)
-        print(median_jps)
+        median_energy = np.median(energy_data, axis=1)
+        median_energy_values.append(median_energy)
+        print(median_energy)
 
-        ax.boxplot(joule_per_second_data.T, showfliers=False)
+        ax.boxplot(energy_data.T, showfliers=False)
         ax.set_title(f"{duration}s")
         ax.set_ylabel("Energy (J)")
         ax.set_xticks([1, 2, 3, 4], labels=["Picoscope", "u.RECS", "Jetson", "Shelly"])
         ax.tick_params("x", rotation=90)
+    fig.tight_layout()
+    plt.show()
+
+    ret: tuple[Figure, np.ndarray] = plt.subplots(1, len(durations), sharey=True)
+    fig, axs = ret
+    axs_l: list[Axes] = list(axs.ravel())
+
+    fig.set_size_inches((20, 5))
+
+    for ax, duration, median_energy in zip(axs_l, durations, median_energy_values):
+        perc_diffs = (median_energy[1:] - median_energy[0]) / median_energy[0]
+        perc_diffs *= 100
+
+        ax.bar(np.arange(1, 4), perc_diffs, fill=False)
+        ax.set_title(f"{duration}s")
+        ax.set_xticks([1, 2, 3], labels=["u.RECS", "Jetson", "Shelly"])
+        ax.tick_params("x", rotation=90)
+        ax.yaxis.grid(True)
+    axs_l[0].set_ylabel("Percent (%)")
     fig.tight_layout()
     plt.show()
