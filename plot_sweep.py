@@ -62,6 +62,7 @@ def load_all_data(
                 data = np.load((run / "oscilloscope.npy").as_posix())
                 samples = 0
                 previous_energy = 0
+                init_start_pos = 0
                 if constant_cut:
                     samples = int(60 / (1 / samplerate))
                     previous_energy = calculate_energy(data[:samples], samplerate)
@@ -74,9 +75,12 @@ def load_all_data(
                         samples = (
                             result["start_stop_idx"][1] - result["start_stop_idx"][0]
                         )
-                current_max = 0
-                for i in np.arange(data.shape[0] - samples):
-                    nrg = calculate_energy(data[i : i + samples], samplerate)
+                        init_start_pos = result["start_stop_idx"][0]
+                current_max = calculate_energy(data[0:samples], samplerate)
+                nrg = current_max
+                for i in np.arange(1, data.shape[0] - samples):
+                    nrg -= (data[i] + data[i - 1]) / 2 * (1 / samplerate)
+                    nrg += (data[i+samples] + data[i-1+samples]) / 2 * (1 / samplerate)
                     if nrg > current_max:
                         current_max = nrg
                 print("Energy Diff: ", abs(current_max - previous_energy))
@@ -179,7 +183,7 @@ if __name__ == "__main__":
     if args.virtual_samplerates:
         estimate_data(path, args.constant_cut, samplerates, samplerates[-1], results)
     else:
-        results = load_all_data(path, args.constant_cut, args.search_max_energy)
+        results = load_all_data(path, args.constant_cut, args.fit_max_energy)
     if args.simulate_slow_samplerates:
         estimate_data(path, args.constant_cut, [1, 5, 10, 25], 50, results)
 
