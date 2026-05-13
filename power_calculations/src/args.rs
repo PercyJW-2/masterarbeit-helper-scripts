@@ -4,6 +4,41 @@ use serde::Serialize;
 
 const DEFAULT_THRESHOLD: f64 = 1. / 10.;
 
+#[derive(Debug, Clone)]
+pub(crate) enum MeasurementEnvironment {
+    Static,
+    Jetson
+}
+
+impl MeasurementEnvironment {
+    pub(crate) const fn get_scale_factor(&self) -> f64 {
+        match self {
+            Self::Static => 1.,
+            Self::Jetson => 1.0 - 0.029467507998557396 //TODO check if value is valid
+        }
+    }
+}
+
+impl FromStr for MeasurementEnvironment {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "static" => Ok(MeasurementEnvironment::Static),
+            "jetson" => Ok(MeasurementEnvironment::Jetson),
+            _ => Err(format!("String {s} is invalid"))
+        }
+    }
+}
+
+impl Display for MeasurementEnvironment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Static => write!(f, "Static"),
+            Self::Jetson => write!(f, "Jetson"),
+        }
+    }
+}
+
 #[derive(Bpaf, Debug, Clone)]
 pub(crate) struct Firmware {
     /// expected maximum energy value of measurement window of duration determined in frame_size
@@ -19,6 +54,9 @@ pub(crate) struct Firmware {
     /// samplerate that was used to record firmware data
     #[bpaf(short, long, fallback(2000.), display_fallback)]
     pub(crate) samplerate: f64,
+    /// measurement environment to mitigate calibration errors
+    #[bpaf(short, long, fallback(MeasurementEnvironment::Jetson), display_fallback)]
+    pub(crate) environment: MeasurementEnvironment
 }
 
 #[derive(Bpaf, Debug, Clone)]

@@ -166,7 +166,8 @@ fn main() -> io::Result<()> {
                     * 0.997224237630222;
                 let current_power =
                     current_current * estimate_voltage_from_current(current_current * 1000.);
-                Ok(PowerSample::Constant(current_power))
+                let corrected_firmware_power = firmware_prefs.environment.get_scale_factor() * current_power;
+                Ok(PowerSample::Constant(corrected_firmware_power))
             },
             true,
             FIRMWARE_TRIGGER_FACTOR,
