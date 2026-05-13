@@ -54,7 +54,7 @@ def load_all_data(
                     f"samplerate {samplerate}\tsamples {samples}\tduration {samples / samplerate}"
                 )
                 sample_count.append(int(60 / (1 / samplerate)))
-                data = data[: int(60 / (1 / samplerate))]
+                data = data[samplerate : samplerate + int(60 / (1 / samplerate))]
                 energy.append(calculate_energy(data, samplerate))
                 duration.append(samples / samplerate)
                 del data
@@ -62,7 +62,6 @@ def load_all_data(
                 data = np.load((run / "oscilloscope.npy").as_posix())
                 samples = 0
                 previous_energy = 0
-                init_start_pos = 0
                 if constant_cut:
                     samples = int(60 / (1 / samplerate))
                     previous_energy = calculate_energy(data[:samples], samplerate)
@@ -75,12 +74,15 @@ def load_all_data(
                         samples = (
                             result["start_stop_idx"][1] - result["start_stop_idx"][0]
                         )
-                        init_start_pos = result["start_stop_idx"][0]
                 current_max = calculate_energy(data[0:samples], samplerate)
                 nrg = current_max
                 for i in np.arange(1, data.shape[0] - samples):
                     nrg -= (data[i] + data[i - 1]) / 2 * (1 / samplerate)
-                    nrg += (data[i+samples] + data[i-1+samples]) / 2 * (1 / samplerate)
+                    nrg += (
+                        (data[i + samples] + data[i - 1 + samples])
+                        / 2
+                        * (1 / samplerate)
+                    )
                     if nrg > current_max:
                         current_max = nrg
                 print("Energy Diff: ", abs(current_max - previous_energy))
@@ -116,25 +118,34 @@ def estimate_data(
     max_samplerate_folder = path / f"{original_samplerate}Sps"
     for run in [x for x in max_samplerate_folder.iterdir() if x.is_dir()]:
         data = np.load((run / "oscilloscope.npy").as_posix())
+        start_idx = 0
+        stop_idx = 0
         if constant_cut:
-            data = data[: int(60 / (1 / original_samplerate))]
+            start_idx = original_samplerate
+            stop_idx = original_samplerate + int(60 / (1 / original_samplerate))
         else:
             with (run / "results.yaml").open() as result_file:
                 result = yaml.safe_load(result_file)
                 start_stop_idx = result["oscilloscope_results"]["results"][
                     "start_stop_idx"
                 ]
-                data = data[start_stop_idx[0] : start_stop_idx[1]]
+                start_idx = start_stop_idx[0]
+                stop_idx = start_stop_idx[1]
         # loaded data of run
-        simulate_samplerates(samplerates, original_samplerate, data, results)
+        simulate_samplerates(
+            samplerates, original_samplerate, data, start_idx, stop_idx, results
+        )
 
 
 def simulate_samplerates(
     samplerates: list[int],
     original_samplerate: int,
     data: np.ndarray,
+    start_idx: int,
+    stop_idx: int,
     result_dict: Dict[int, tuple[list[float], list[float], list[float]]],
 ) -> None:
+    mean_data = np.mean(data[: 5 * original_samplerate])
     for samplerate in samplerates:
         skip_amount = round(original_samplerate / samplerate)
         actual_samplerate = round(original_samplerate / skip_amount)
@@ -144,16 +155,40 @@ def simulate_samplerates(
         sos = scipy.signal.butter(
             1, actual_samplerate / 2, "lp", fs=original_samplerate, output="sos"
         )
-        filtered_data = scipy.signal.sosfilt(sos, data)
+        zi = scipy.signal.sosfilt_zi(sos) * mean_data
+        filtered_data, _ = scipy.signal.sosfilt(sos, data, zi=zi)
+        filtered_data = filtered_data[::skip_amount]
+        # filtered_data = scipy.signal.resample_poly(data, 1, skip_amount, padtype="mean")
+        # filtered_data = np.convolve(
+        #    data, np.ones(skip_amount) / skip_amount, mode="valid"
+        # )[::skip_amount]
+        # filtered_data = scipy.signal.decimate(data, skip_amount)
+        # filtered_data = scipy.signal.resample(data, data.shape[0] // skip_amount)
+        if samplerate == 1:
+            plt.plot(
+                np.arange(0, data.shape[0], skip_amount)[actual_samplerate:],
+                filtered_data[actual_samplerate:],
+                color="red",
+            )
         if actual_samplerate not in result_dict:
             result_dict[actual_samplerate] = ([], [], [])
         result_dict[actual_samplerate][0].append(
-            calculate_energy(filtered_data[::skip_amount], actual_samplerate)
+            calculate_energy(
+                filtered_data[start_idx // skip_amount : stop_idx // skip_amount + 1],
+                actual_samplerate,
+            )
         )
         result_dict[actual_samplerate][1].append(
-            filtered_data[::skip_amount].shape[0] / actual_samplerate
+            filtered_data[start_idx // skip_amount : stop_idx // skip_amount + 1].shape[
+                0
+            ]
+            / actual_samplerate
         )
-        result_dict[actual_samplerate][2].append(filtered_data[::skip_amount].shape[0])
+        result_dict[actual_samplerate][2].append(
+            filtered_data[start_idx // skip_amount : stop_idx // skip_amount + 1].shape[
+                0
+            ]
+        )
 
 
 def plot_as_boxplot(data: list[list[float]], ax: Axes):
@@ -273,10 +308,10 @@ if __name__ == "__main__":
     # for samplerate in samplerates[:-10]:
     #     print(f"\\rotatebox{{90}}{{\\SI{{{samplerate}}}{{S/\\second}}}} &")
     for eps in energy_per_sample_median[:-10]:
-        print(f"\\rotatebox{{90}}{{\\SI{{{eps:.2e}}}{{\\joule/S}}}} &")
+        print(f"\\SI{{{eps:.2e}}}{{\\joule/S}} &")
     print()
     for eps in energy_per_sample_median[-10:]:
-        print(f"\\rotatebox{{90}}{{\\SI{{{eps:.2e}}}{{\\joule/S}}}} &")
+        print(f"\\SI{{{eps:.2e}}}{{\\joule/S}} &")
     stats = [
         f", e_per_s: {y:.2e}, median duration: {np.median(z):.2f}, sample count {np.median(a)}"
         for y, z, a in zip(energy_per_sample_median, durations, samplecounts)
