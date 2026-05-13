@@ -62,6 +62,11 @@ parser.add_argument(
     help="Address of u.RECS Management Controller",
     default="10.42.0.162",
 )
+parser.add_argument(
+    "--measurement_environment"
+    help="u.RECS needs a correction factor that is associated to the measurement environment, options are Static and Jetson."
+    default="Jetson",
+)
 parser.add_argument("-p", "--picoscope", help="Measure picoscope", action="store_true")
 parser.add_argument(
     "--picoscope_samplerate",
@@ -71,7 +76,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--picoscope_measurement_type",
-    help="measurement type connected to picoscope, options are UCurrent, CurrentRanger and INA225. Default is INA225",
+    help="measurement type connected to picoscope, options are UCurrent, CurrentRanger and INA225.",
     default="INA225",
 )
 parser.add_argument(
@@ -123,6 +128,8 @@ def start_run(
     command = args.command
     if duration_override is None:
         duration_override = args.duration
+        if duration_override is None:
+            exit(-3)
     else:
         command += f" {duration_override}"
     data_collection_command = f"urecs-data-collector -s={storage_path.as_posix()} -d={int(duration_override + 1)}s -c='{command}'"
@@ -131,7 +138,7 @@ def start_run(
     if args.firmware:
         data_collection_command += f" firmware --address={args.firmware_address}"
     if args.fast_firmware:
-        data_collection_command += f" fast-firmware --address={args.firmware_address} --data-port=3000 --channel={args.fast_firmware_channel} --sample-rate={args.fast_firmware_samplerate}"
+        data_collection_command += f" fast-firmware --address={args.firmware_address} --data-port=3000 --channel={args.fast_firmware_channel} --sample-rate={args.fast_firmware_samplerate} --environment={args.measurement_environment}"
     if args.shelly:
         data_collection_command += f" shelly-plug --address={args.shelly_address}"
     if args.picoscope:
