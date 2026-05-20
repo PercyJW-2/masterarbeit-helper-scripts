@@ -137,7 +137,7 @@ fn main() -> io::Result<()> {
                 let current_power = voltage * current;
                 Ok(PowerSample::Constant(current_power))
             },
-            true,
+            args.apply_filter,
             OSC_TRIGGER_FACTOR,
             osc_prefs.predicted_maximum.zip(osc_prefs.predicted_minimum),
             osc_prefs.frame_size,
@@ -169,7 +169,7 @@ fn main() -> io::Result<()> {
                 let corrected_firmware_power = firmware_prefs.environment.get_scale_factor() * current_power;
                 Ok(PowerSample::Constant(corrected_firmware_power))
             },
-            true,
+            args.apply_filter,
             FIRMWARE_TRIGGER_FACTOR,
             firmware_prefs
                 .predicted_maximum

@@ -204,6 +204,9 @@ pub(crate) struct Args {
     /// Unit is in seconds
     #[bpaf(short, long)]
     pub(crate) estimated_duration: Option<f64>,
+    /// Apply Lowpass-Filter on u.RECS and Oscilloscope data. Frequency=25%*Sample-Rate
+    #[bpaf(short('f'), long)]
+    pub(crate) apply_filter: bool,
     /// Settings for firmware measurements
     #[bpaf(external, fallback(FirmwareEnum::None))]
     pub(crate) firmware_enum: FirmwareEnum,

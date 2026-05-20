@@ -114,6 +114,11 @@ parser.add_argument(
     help="In the measurement_path folder there are multiple folders that have the format Xs which are used to determine the measurement duration",
     action="store_true",
 )
+parser.add_argument(
+    "--apply_filter",
+    help="Applys Lowpass-Filter on u.RECS and oscilloscope data, Frequency=25%*Samplerate"
+    action="store_true",
+)
 
 
 def start_run(
@@ -145,6 +150,8 @@ def start_run(
         data_collection_command += f" usb-oscilloscope --sample-rate={pico_samplerate_override} --measurement-type={args.picoscope_measurement_type}"
     logger.info(data_collection_command)
     power_calculation_command = f"power_calculations -m={storage_path.as_posix()} -c -r --estimated-duration={int(duration_override + 2)}"
+    if args.apply_filter:
+        power_calculation_command += " -f"
     power_calculation_methods = ""
     power_cut_section_command = ""
     if args.use_complete_measurement:
