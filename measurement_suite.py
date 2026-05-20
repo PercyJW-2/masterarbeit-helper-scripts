@@ -63,8 +63,8 @@ parser.add_argument(
     default="10.42.0.162",
 )
 parser.add_argument(
-    "--measurement_environment"
-    help="u.RECS needs a correction factor that is associated to the measurement environment, options are Static and Jetson."
+    "--measurement_environment",
+    help="u.RECS needs a correction factor that is associated to the measurement environment, options are Static and Jetson.",
     default="Jetson",
 )
 parser.add_argument("-p", "--picoscope", help="Measure picoscope", action="store_true")
@@ -138,7 +138,7 @@ def start_run(
     if args.firmware:
         data_collection_command += f" firmware --address={args.firmware_address}"
     if args.fast_firmware:
-        data_collection_command += f" fast-firmware --address={args.firmware_address} --data-port=3000 --channel={args.fast_firmware_channel} --sample-rate={args.fast_firmware_samplerate} --environment={args.measurement_environment}"
+        data_collection_command += f" fast-firmware --address={args.firmware_address} --data-port=3000 --channel={args.fast_firmware_channel} --sample-rate={args.fast_firmware_samplerate}"
     if args.shelly:
         data_collection_command += f" shelly-plug --address={args.shelly_address}"
     if args.picoscope:
@@ -150,9 +150,7 @@ def start_run(
     if args.use_complete_measurement:
         power_cut_section_command = " --predicted-maximum=0.0001 --predicted-minimum=0"
     if args.fast_firmware:
-        power_calculation_methods += (
-            f" firmware -s={args.fast_firmware_samplerate}{power_cut_section_command}"
-        )
+        power_calculation_methods += f" firmware -s={args.fast_firmware_samplerate}{power_cut_section_command} --environment={args.measurement_environment}"
     if args.picoscope:
         power_calculation_methods += f" oscilloscope -s={pico_samplerate_override} -m={args.picoscope_measurement_type}{power_cut_section_command}"
         if args.picoscope_use_measured_voltages:

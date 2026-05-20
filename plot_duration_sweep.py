@@ -141,6 +141,7 @@ if __name__ == "__main__":
     axs_l[0].set_ylabel("Energy per Second (J/s)")
     axs_l[len(durations) // 2].set_ylabel("Energy per Second (J/s)")
     fig.tight_layout()
+    plt.savefig("duration_sweep_boxplot.pdf")
     plt.show()
 
     ret: tuple[Figure, np.ndarray] = plt.subplots(1, len(durations), sharey=True)
@@ -163,4 +164,5 @@ if __name__ == "__main__":
     axs_l[0].set_ylabel("Percent (%)")
     print(np.median(urecs_diffs))
     fig.tight_layout()
+    plt.savefig("duration_sweep_deviations.pdf")
     plt.show()
