@@ -116,7 +116,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--apply_filter",
-    help="Applys Lowpass-Filter on u.RECS and oscilloscope data, Frequency=25%*Samplerate",
+    help="Applys Lowpass-Filter on u.RECS and oscilloscope data, Frequency=0.25*Samplerate",
     action="store_true",
 )
 

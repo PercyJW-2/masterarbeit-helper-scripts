@@ -329,4 +329,6 @@ if __name__ == "__main__":
         ax.set_xlabel("Samplerate (S/s)")
     fig.tight_layout()
     fig.savefig("figure.pdf", format="pdf")
+    # plt.figure()
+    # plt.plot(samplerates, np.median(energies, axis=1))
     plt.show()
