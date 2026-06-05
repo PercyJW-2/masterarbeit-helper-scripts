@@ -25,7 +25,9 @@ parse_run_cmd() {
 }
 
 benchmark_configs=(
-  "other /home/nx/random_load/random_pattern.sh 100 random_pattern_yolo"
+#  "other /home/nx/random_load/random_pattern.sh 100 random_pattern_yolo"
+  "trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16"
+  "trtexec /home/nx/hpc/pwgemmnet-int8.engine 400 gemm/int8"
 )
 
 for current_config in "${benchmark_configs[@]}"; do
@@ -44,25 +46,25 @@ for current_config in "${benchmark_configs[@]}"; do
 done
 
 msmt_to_repeat=(
-  "85 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/85Sps"
-  "400 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/400Sps"
-  "1200 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/1200Sps"
-  "5500 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/5500Sps"
-  "27000 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/27000Sps"
-  "45000 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/45000Sps"
-  "160000 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/160000Sps"
-  "400000 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/400000Sps"
-  "625000 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/625000Sps"
-  "800000 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/800000Sps"
-  "2500000 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/2500000Sps"
-  "625000 101 trtexec /home/nx/hpc/pwgemmnet-int8.engine 400 gemm/int8/625000Sps"
-  "5000000 101 trtexec /home/nx/hpc/pwgemmnet-int8.engine 400 gemm/int8/5000000Sps"
-  "400 99 trtexec /home/nx/yolo/yolo11n-fp32.engine 15000 yolo/fp32/400Sps"
-  "preload_llm"
-  "50 142 other /home/nx/llm_launch.sh 0 llm/50Sps"
-  "150 142 other /home/nx/llm_launch.sh 0 llm/150Sps"
-  "2000 142 other /home/nx/llm_launch.sh 0 llm/2000Sps"
-  "9400 142 other /home/nx/llm_launch.sh 0 llm/9400Sps"
+#  "85 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/85Sps"
+#  "400 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/400Sps"
+#  "1200 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/1200Sps"
+#  "5500 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/5500Sps"
+#  "27000 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/27000Sps"
+#  "45000 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/45000Sps"
+#  "160000 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/160000Sps"
+#  "400000 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/400000Sps"
+#  "625000 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/625000Sps"
+#  "800000 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/800000Sps"
+#  "2500000 100 trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16/2500000Sps"
+#  "625000 101 trtexec /home/nx/hpc/pwgemmnet-int8.engine 400 gemm/int8/625000Sps"
+#  "5000000 101 trtexec /home/nx/hpc/pwgemmnet-int8.engine 400 gemm/int8/5000000Sps"
+#  "400 99 trtexec /home/nx/yolo/yolo11n-fp32.engine 15000 yolo/fp32/400Sps"
+#  "preload_llm"
+#  "50 142 other /home/nx/llm_launch.sh 0 llm/50Sps"
+#  "150 142 other /home/nx/llm_launch.sh 0 llm/150Sps"
+#  "2000 142 other /home/nx/llm_launch.sh 0 llm/2000Sps"
+#  "9400 142 other /home/nx/llm_launch.sh 0 llm/9400Sps"
 )
 
 for repeated in "${msmt_to_repeat[@]}"; do

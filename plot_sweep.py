@@ -191,20 +191,35 @@ def simulate_samplerates(
         )
 
 
-def plot_as_boxplot(data: list[list[float]], ax: Axes):
-    ax.boxplot(data, showfliers=False)
+def plot_as_boxplot(data: np.ndarray, ax: Axes):
+    ax.boxplot(data.T, showfliers=False, whis=(0, 100))
 
 
-def plot_as_scatterplot(data: list[list[float]], ax: Axes):
+def plot_as_scatterplot(data: np.ndarray, ax: Axes):
     for idx, samplerate_data in enumerate(data):
         ax.scatter([idx + 1] * len(samplerate_data), samplerate_data)
 
 
-def plot_data(data: list[list[float]], ax: Axes):
+def plot_data(data: np.ndarray, ax: Axes):
+    print(data)
     if len(data[0]) > 10:
         plot_as_boxplot(data, ax)
     else:
         plot_as_scatterplot(data, ax)
+
+
+def replace_outliers_with_nan(data: np.ndarray) -> np.ndarray:
+    q_95p = np.percentile(data, 95, axis=1)
+    q_5p = np.percentile(data, 5, axis=1)
+    too_high_idx = (data.T > q_95p).T
+    too_low_idx = (data.T < q_5p).T
+    invalid_idx = np.logical_or(too_high_idx, too_low_idx)
+    data[invalid_idx] = np.nan
+    copy = np.copy(data)
+    copy[np.logical_not(invalid_idx)] = 0
+    copy[invalid_idx] = 1
+    print("Removed following amount: ", np.sum(copy, axis=1))
+    return np.array([a[np.isfinite(a)] for a in data])
 
 
 if __name__ == "__main__":
@@ -249,6 +264,8 @@ if __name__ == "__main__":
     #    np.median(energy_per_sample, axis=1),
     #    fill=True,
     # )
+    energies = np.array(energies)
+    energies = replace_outliers_with_nan(energies)
     plot_data(energies, axs[0])
     axs[0].set_ylabel("Energy (J)")
     axs[0].set_title("Measurement Energies")
@@ -260,7 +277,6 @@ if __name__ == "__main__":
     # plot_data(normalized_energies, axs[1])
     # axs[1].set_ylabel("Watt (J/s)")
     # axs[1].set_title("Average Power")
-    energies = np.array(energies)
     """axs[1].bar(
         range(1, energies.shape[0] + 1),
         (
