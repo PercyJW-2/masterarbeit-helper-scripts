@@ -102,7 +102,9 @@ if __name__ == "__main__":
     urecs_diff = 100 * (urecs_median - pico_median) / pico_median
     shelly_diff = 100 * (shelly_median - pico_median) / pico_median
     jetson_diff = 100 * (jetson_median - pico_median) / pico_median
-    print(urecs_diff)
+    print("urecs diff percent: ", urecs_diff)
+    print("shelly diff percent: ", shelly_diff)
+    print("jetson_diff percent: ", jetson_diff)
 
     if jetson_median > 0:
         axs_l[1].bar(

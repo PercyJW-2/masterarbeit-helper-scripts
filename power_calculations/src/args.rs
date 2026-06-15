@@ -14,7 +14,7 @@ impl MeasurementEnvironment {
     pub(crate) const fn get_scale_factor(&self) -> f64 {
         match self {
             Self::Static => 1.,
-            Self::Jetson => 1.0 - 0.029467507998557396 //TODO check if value is valid
+            Self::Jetson => 1.0 - 0.03127795823408493 //TODO check if value is valid
         }
     }
 }
