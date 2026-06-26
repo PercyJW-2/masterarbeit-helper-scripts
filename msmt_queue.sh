@@ -31,12 +31,11 @@ benchmark_configs=(
   #  "other /home/nx/random_load/random_pattern.sh 100 random_pattern_yolo"
   #  "trtexec /home/nx/hpc/pwgemmnet-fp16.engine 200 gemm/fp16"
   #  "trtexec /home/nx/hpc/pwgemmnet-int8.engine 400 gemm/int8"
-  "other /home/nx/timed_engine_execution.sh /home/nx/hpc/pwgemmnet-fp16.engine gemm/fp16"
-  "other /home/nx/timed_engine_execution.sh /home/nx/hpc/pwgemmnet-int8.engine gemm/int8"
+  # "other /home/nx/timed_engine_execution.sh /home/nx/hpc/pwgemmnet-int8.engine gemm/int8"
   "other /home/nx/timed_engine_execution.sh /home/nx/yolo/yolo11n-fp32.engine yolo/fp32"
   "other /home/nx/timed_engine_execution.sh /home/nx/yolo/yolo11n-fp16.engine yolo/fp16"
   "other /home/nx/timed_engine_execution.sh /home/nx/yolo/yolo11n-int8.engine yolo/int8"
-  "otherNoarg /home/nx/random_load/random_pattern.sh random_pattern_yolo_durations"
+  "otherNoarg /home/nx/random_load/random_pattern.sh random_pattern_yolo_durations_adjusted"
 )
 
 for current_config in "${benchmark_configs[@]}"; do
@@ -49,12 +48,12 @@ for current_config in "${benchmark_configs[@]}"; do
   #   -m /mnt/6e97041d-abf4-4100-8bef-9111a0c14742/power_measurements/finishedMeasurements/samplerates/"$run_path" -r 15 -p \
   #   --picoscope_use_measured_voltages --pico_samplerate_sweep
   uv run measurement_suite.py -c "ssh nx@10.42.0.200 $cmd" \
-    -m /mnt/6e97041d-abf4-4100-8bef-9111a0c14742/power_measurements/finishedMeasurements/samplerates/"$run_path" -r 15 -p \
-    --picoscope_samplerate 2000 --duration_sweep --measurement_environment static -s -f -j
+    -m /mnt/6e97041d-abf4-4100-8bef-9111a0c14742/power_measurements/finishedMeasurements/durations/"$run_path" -r 15 -p \
+    --picoscope_samplerate 2000 --duration_sweep --measurement_environment jetson -s -f -j
   sshpass -f /home/jwachsmuth/.ssh/pass_file ssh twix mkdir /homes/jwachsmuth/power_measurements/durations_without_filter/"$run_path"
   rsync -z -P -r --rsh="sshpass -f /home/jwachsmuth/.ssh/pass_file ssh -l jwachsmuth" /mnt/6e97041d-abf4-4100-8bef-9111a0c14742/power_measurements/finishedMeasurements/durations/"$run_path" \
     twix:/homes/jwachsmuth/power_measurements/durations_without_filter/"$run_path"/
-  rm /mnt/6e97041d-abf4-4100-8bef-9111a0c14742/power_measurements/finishedMeasurements/samplerates/"$run_path"/*/*/*.npy
+  # rm /mnt/6e97041d-abf4-4100-8bef-9111a0c14742/power_measurements/finishedMeasurements/durations/"$run_path"/*/*/*.npy
 done
 
 msmt_to_repeat=(

@@ -33,6 +33,7 @@ class MsmtType(Enum):
 parser = argparse.ArgumentParser("Plot duration sweep done with measurement suite")
 
 parser.add_argument("-p", "--path", help="Root folder of msmt sweep", required=True)
+parser.add_argument("-s", "--skip_plot", action="store_true")
 
 
 def load_all_data(
@@ -119,7 +120,10 @@ if __name__ == "__main__":
 
     fig.set_size_inches((20, 10))
 
+    y_label_font_size = 12
+
     median_energy_values = []
+    median_joule_per_second_values = []
 
     for ax, duration in zip(axs_l, durations):
         duration_data = data[duration]
@@ -128,6 +132,8 @@ if __name__ == "__main__":
         duration_data = np.array(transposed_data[0])
         energy_data = np.array(transposed_data[1])
         joule_per_second_data = energy_data / duration_data
+        median_jps = np.median(joule_per_second_data, axis=1)
+        median_joule_per_second_values.append(median_jps)
 
         median_energy = np.median(energy_data, axis=1)
         median_energy_values.append(median_energy)
@@ -138,11 +144,14 @@ if __name__ == "__main__":
         ax.set_xticks([1, 2, 3, 4], labels=["Picoscope", "u.RECS", "Jetson", "Shelly"])
         ax.tick_params("x", rotation=90)
         ax.yaxis.grid(True)
-    axs_l[0].set_ylabel("Energy per Second (J/s)")
-    axs_l[len(durations) // 2].set_ylabel("Energy per Second (J/s)")
+    axs_l[0].set_ylabel("Energy per Second (J/s)", fontsize=y_label_font_size)
+    axs_l[len(durations) // 2].set_ylabel(
+        "Energy per Second (J/s)", fontsize=y_label_font_size
+    )
     fig.tight_layout()
     plt.savefig("duration_sweep_boxplot.pdf")
-    plt.show()
+    if not args.skip_plot:
+        plt.show()
 
     ret: tuple[Figure, np.ndarray] = plt.subplots(1, len(durations), sharey=True)
     fig, axs = ret
@@ -155,14 +164,31 @@ if __name__ == "__main__":
         perc_diffs = (median_energy[1:] - median_energy[0]) / median_energy[0]
         perc_diffs *= 100
         urecs_diffs.append(perc_diffs[0])
+        print(duration, ": ", perc_diffs)
 
         ax.bar(np.arange(1, 4), perc_diffs, fill=False, hatch="//")
         ax.set_title(f"{duration}s")
         ax.set_xticks([1, 2, 3], labels=["u.RECS", "Jetson", "Shelly"])
         ax.tick_params("x", rotation=90)
         ax.yaxis.grid(True)
-    axs_l[0].set_ylabel("Percent (%)")
+    axs_l[0].set_ylabel("Percent (%)", fontsize=y_label_font_size)
     print(np.median(urecs_diffs))
     fig.tight_layout()
     plt.savefig("duration_sweep_deviations.pdf")
-    plt.show()
+    if not args.skip_plot:
+        plt.show()
+
+    median_energy_values = np.array(median_joule_per_second_values)
+    print(median_energy_values)
+    diff_between_5s_and_600s = (
+        median_energy_values[:-1, 0] - median_energy_values[-1][0]
+    ) / median_energy_values[-1][0]
+
+    print("Perc_diffs Picoscope 5s towards 600s: ", diff_between_5s_and_600s[0] * 100)
+    print("Perc_diffs Picoscope 100s towards 600s: ", diff_between_5s_and_600s[4] * 100)
+    print(durations)
+    print(
+        "First Msmt below 3%:",
+        durations[np.argmax(diff_between_5s_and_600s > -0.03)],
+        diff_between_5s_and_600s[np.argmax(diff_between_5s_and_600s > -0.03)] * 100,
+    )

@@ -207,7 +207,7 @@ def start_run(
 
     for run_number in range(args.run_count):
         duration_diff = planned_duration + 1
-        while duration_diff > planned_duration * 0.1 and invalid_runs < 15:
+        while duration_diff > planned_duration * 0.1:
             if duration_diff < planned_duration:
                 logger.info("Run was invalid, doing run again")
                 invalid_runs += 1

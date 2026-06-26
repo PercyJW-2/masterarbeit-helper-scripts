@@ -120,4 +120,5 @@ if __name__ == "__main__":
 
     fig.tight_layout()
 
+    plt.savefig("static_comparison.pdf", format="pdf")
     plt.show()
