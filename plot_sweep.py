@@ -267,8 +267,8 @@ if __name__ == "__main__":
     energies = np.array(energies)
     energies = replace_outliers_with_nan(energies)
     plot_data(energies, axs[0])
-    axs[0].set_ylabel("Energy (J)")
-    axs[0].set_title("Measurement Energies")
+    axs[0].set_ylabel("Energie (J)")
+    axs[0].set_title("Gemessene Energie")
     # axs[0].set_zorder(1)
     # axs[0].set_frame_on(False)
 
@@ -297,18 +297,18 @@ if __name__ == "__main__":
         np.array(range(1, energies.shape[0] + 1)),
         100 * np.std(energies, axis=1) / np.mean(energies, axis=1),
         fill=False,
-        label="Standard Deviation",
+        label="Standardabweichung (Population)",
     )
     axs[1].bar(
         np.array(range(1, energies.shape[0] + 1)),
         100 * quantile_deviation / np.mean(energies, axis=1),
         fill=True,
         color="black",
-        label="Qartile Deviation",
+        label="Qartilsabweichung",
     )
     axs[1].legend()
-    axs[1].set_ylabel("Percent (%)")
-    axs[1].set_title("Measurement Deviation in Percent")
+    axs[1].set_ylabel("Prozent (%)")
+    axs[1].set_title("Messabweichung in Prozent")
     median_avg = np.mean(np.median(energies, axis=1))  # baseline
     means = np.mean(energies, axis=1)
     baseline_diff = means - median_avg
@@ -318,8 +318,8 @@ if __name__ == "__main__":
         baseline_diff_percentages,
         fill=False,
     )
-    axs[2].set_ylabel("Percent (%)")
-    axs[2].set_title("Deviation Samplerate mean to mean of all medians")
+    axs[2].set_ylabel("Prozent (%)")
+    axs[2].set_title("Abweichung des Mittelwerts einer Abtastrate vom Mittelwert aller Abtastraten-Mediane")
     energy_per_sample_median = np.median(np.array(energy_per_sample), axis=1)
     # for samplerate in samplerates[:-10]:
     #     print(f"\\rotatebox{{90}}{{\\SI{{{samplerate}}}{{S/\\second}}}} &")
