@@ -7,14 +7,31 @@ const DEFAULT_THRESHOLD: f64 = 1. / 10.;
 #[derive(Debug, Clone)]
 pub(crate) enum MeasurementEnvironment {
     Static,
-    Jetson
+    Jetson,
+    M2,
 }
 
 impl MeasurementEnvironment {
     pub(crate) const fn get_scale_factor(&self) -> f64 {
         match self {
             Self::Static => 1.,
-            Self::Jetson => 1.0 - 0.03127795823408493 //TODO check if value is valid
+            Self::Jetson => 1.0 - 0.03127795823408493, //TODO check if value is valid
+            Self::M2 => 1.,
+        }
+    }
+
+    pub(crate) const fn get_resistance(&self) -> f64 {
+        match self {
+            Self::Static => 0.,
+            Self::Jetson => 0.2934,
+            Self::M2 => 0.0797,
+        }
+    }
+
+    pub(crate) const fn get_initial_voltage(&self) -> f64 {
+        match self {
+            Self::Static | Self::Jetson => 18.95,
+            Self::M2 => 3.313
         }
     }
 }
@@ -25,6 +42,7 @@ impl FromStr for MeasurementEnvironment {
         match s.to_lowercase().as_str() {
             "static" => Ok(MeasurementEnvironment::Static),
             "jetson" => Ok(MeasurementEnvironment::Jetson),
+            "m.2" => Ok(MeasurementEnvironment::M2),
             _ => Err(format!("String {s} is invalid"))
         }
     }
@@ -35,6 +53,7 @@ impl Display for MeasurementEnvironment {
         match self {
             Self::Static => write!(f, "Static"),
             Self::Jetson => write!(f, "Jetson"),
+            Self::M2 => write!(f, "M_2"),
         }
     }
 }
@@ -124,6 +143,9 @@ pub(crate) struct Oscilloscope {
         display_fallback
     )]
     pub(crate) measurement_type: OscilloscopeMsmtType,
+    /// measurement environment to select correct voltage estimation
+    #[bpaf(short, long, fallback(MeasurementEnvironment::Jetson), display_fallback)]
+    pub(crate) environment: MeasurementEnvironment
 }
 
 #[derive(Bpaf, Debug, Clone)]

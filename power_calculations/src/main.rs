@@ -132,7 +132,7 @@ fn main() -> io::Result<()> {
                 let voltage = if osc_prefs.use_voltage {
                     pico_measurement.voltage
                 } else {
-                    estimate_voltage_from_current(current * 1000.)
+                    estimate_voltage_from_current(current * 1000., &osc_prefs.environment)
                 };
                 let current_power = voltage * current;
                 Ok(PowerSample::Constant(current_power))
@@ -165,7 +165,7 @@ fn main() -> io::Result<()> {
                 let current_current = ((firmware_measurement.current as f64 / 1000.) + 0.004704622)
                     * 0.997224237630222;
                 let current_power =
-                    current_current * estimate_voltage_from_current(current_current * 1000.);
+                    current_current * estimate_voltage_from_current(current_current * 1000., &firmware_prefs.environment);
                 let corrected_firmware_power = firmware_prefs.environment.get_scale_factor() * current_power;
                 Ok(PowerSample::Constant(corrected_firmware_power))
             },

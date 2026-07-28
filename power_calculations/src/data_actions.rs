@@ -9,7 +9,7 @@ use std::{
 use std::path::PathBuf;
 use log::info;
 use parquet::record::Row;
-use crate::args::Args;
+use crate::args::{Args, MeasurementEnvironment};
 use crate::data_reading::{init_reader, read_to_power_vector};
 use crate::output_types::Results;
 
@@ -248,9 +248,12 @@ pub(crate) fn calc_energy(data: &PowerVec, samplerate_opt: Option<f64>, start_en
 }
 
 /// current -> unit is in mA
-pub(crate) fn estimate_voltage_from_current(current: f64) -> f64 {
-    let curve_pos = current / 100.;
-    curve_pos * (-0.007444582) + 19.062607082705
+pub(crate) fn estimate_voltage_from_current(current: f64, env: &MeasurementEnvironment) -> f64 {
+    let voltage_drop = current * env.get_resistance();
+    let voltage = env.get_initial_voltage() - voltage_drop;
+    voltage
+    // let curve_pos = current / 100.;
+    // curve_pos * (-0.007444582) + 19.062607082705
     /*const VOLTAGE_VALUES: [f64; 36] = [
         18.9060, 18.8433, 18.8036, 18.7648, 18.7275, 18.6921, 18.6550, 18.6207, 18.5848, 18.5501,
         18.5169, 18.4835, 18.4498, 18.4162, 18.3825, 18.3494, 18.3166, 18.2837, 18.2672, 18.2335,
