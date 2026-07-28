@@ -48,8 +48,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--fast_firmware_channel",
-    help="Select which Channel on the uRECS is measured, default is Jetson Current",
-    default=2,
+    help="Select which Channel on the uRECS is measured, Jetson Current is Channel 2, M.2 is Channel 5",
+    default=5,
 )
 parser.add_argument(
     "-F",
@@ -64,8 +64,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--measurement_environment",
-    help="u.RECS needs a correction factor that is associated to the measurement environment, options are Static and Jetson.",
-    default="Jetson",
+    help="u.RECS needs a correction factor that is associated to the measurement environment, options are Static, Jetson and M.2.",
+    default="M.2",
 )
 parser.add_argument("-p", "--picoscope", help="Measure picoscope", action="store_true")
 parser.add_argument(
@@ -92,7 +92,7 @@ parser.add_argument("-j", "--jetson", help="Measure jetson", action="store_true"
 parser.add_argument(
     "--jetson_address",
     help="Network Address of the Nvidia Jetson",
-    default="10.42.0.200",
+    default="10.42.0.44",
 )
 parser.add_argument(
     "--skip_power_calculation",
@@ -159,7 +159,7 @@ def start_run(
     if args.fast_firmware:
         power_calculation_methods += f" firmware -s={args.fast_firmware_samplerate}{power_cut_section_command} --environment={args.measurement_environment}"
     if args.picoscope:
-        power_calculation_methods += f" oscilloscope -s={pico_samplerate_override} -m={args.picoscope_measurement_type}{power_cut_section_command}"
+        power_calculation_methods += f" oscilloscope -s={pico_samplerate_override} -m={args.picoscope_measurement_type}{power_cut_section_command} --environment={args.measurement_environment}"
         if args.picoscope_use_measured_voltages:
             power_calculation_methods += " -v"
     if args.shelly:
