@@ -8,7 +8,7 @@ use crate::args::*;
 use crate::data_actions::*;
 use crate::data_reading::*;
 use crate::data_reading_types::*;
-use crate::output_types::{OscilloscopeResults, Output};
+use crate::output_types::{OscilloscopeResults, Output, TekScopeResults};
 use pyo3::prelude::*;
 use std::ffi::CString;
 use std::{fs, io};
@@ -28,6 +28,10 @@ fn main() -> io::Result<()> {
     let osc_prefs = match &args.oscilloscope_enum {
         OscilloscopeEnum::None => None,
         OscilloscopeEnum::Oscilloscope(oscilloscope) => Some(oscilloscope),
+    };
+    let tek_prefs = match &args.tek_scope_enum {
+        TekScopeEnum::None => None,
+        TekScopeEnum::TekScope(tekscope) => Some(tekscope),
     };
 
     let jetson_results = if let JetsonEnum::Jetson(jetson_prefs) = &args.jetson_enum {
@@ -132,7 +136,7 @@ fn main() -> io::Result<()> {
                 let voltage = if osc_prefs.use_voltage {
                     pico_measurement.voltage
                 } else {
-                    estimate_voltage_from_current(current * 1000., &osc_prefs.environment)
+                    estimate_voltage_from_current(current * 1000., &args.environment)
                 };
                 let current_power = voltage * current;
                 Ok(PowerSample::Constant(current_power))
@@ -143,6 +147,33 @@ fn main() -> io::Result<()> {
             osc_prefs.frame_size,
             Some(osc_prefs.samplerate),
             "oscilloscope.npy",
+        )?;
+        Some(results)
+    } else {
+        None
+    };
+
+    let tekscope_results = if let Some(tek_prefs) = &tek_prefs {
+        info!("Calculating TekScope results");
+        const TEK_TRIGGER_FACTOR: f64 = 0.25;
+        let results = calculate_results(
+            &args,
+            "tek_hsi.parquet",
+            |raw_row| {
+                let cols = raw_row.into_columns();
+                let tek_measurement = TekMeasurement {
+                    current: field_to_f64(&cols[0].1).expect("Could not parse Field"),
+                };
+                let voltage = estimate_voltage_from_current(tek_measurement.current, &args.environment);
+                let current_power = voltage * tek_measurement.current;
+                Ok(PowerSample::Constant(current_power))
+            },
+            args.apply_filter,
+            TEK_TRIGGER_FACTOR,
+            tek_prefs.predicted_maximum.zip(tek_prefs.predicted_minimum),
+            tek_prefs.frame_size,
+            Some(tek_prefs.samplerate),
+            "tekScope.npy",
         )?;
         Some(results)
     } else {
@@ -165,8 +196,8 @@ fn main() -> io::Result<()> {
                 let current_current = ((firmware_measurement.current as f64 / 1000.) + 0.004704622)
                     * 0.997224237630222;
                 let current_power =
-                    current_current * estimate_voltage_from_current(current_current * 1000., &firmware_prefs.environment);
-                let corrected_firmware_power = firmware_prefs.environment.get_scale_factor() * current_power;
+                    current_current * estimate_voltage_from_current(current_current * 1000., &args.environment);
+                let corrected_firmware_power = args.environment.get_scale_factor() * current_power;
                 Ok(PowerSample::Constant(corrected_firmware_power))
             },
             args.apply_filter,
@@ -184,6 +215,7 @@ fn main() -> io::Result<()> {
     };
 
     let results = Output {
+        measurement_environment: args.environment,
         jetson_results: jetson_results.clone(),
         shelly_results: shelly_results.clone(),
         oscilloscope_results: osc_results.clone().map(|osc_res| OscilloscopeResults {
@@ -191,6 +223,10 @@ fn main() -> io::Result<()> {
             sample_rate: osc_prefs.unwrap().samplerate,
             use_voltage: osc_prefs.unwrap().use_voltage,
             msmt_type: osc_prefs.unwrap().measurement_type.clone(),
+        }),
+        tek_scope_results: tekscope_results.clone().map(|tek_res| TekScopeResults {
+            results: tek_res,
+            sample_rate: tek_prefs.unwrap().samplerate
         }),
         firmware_results: firmware_results.clone(),
     };

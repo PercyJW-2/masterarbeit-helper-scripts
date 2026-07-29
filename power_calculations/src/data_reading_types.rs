@@ -37,6 +37,11 @@ pub(crate) struct PicoMeasurement {
     pub(crate) current: f64,
 }
 
+pub(crate) struct TekMeasurement {
+    /// Unit in amps
+    pub(crate) current: f64,
+}
+
 pub(crate) type Power = f64;
 pub(crate) type Timestamp = f64;
 

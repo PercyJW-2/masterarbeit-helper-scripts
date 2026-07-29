@@ -1,12 +1,14 @@
 use std::fmt::Display;
 use serde::Serialize;
-use crate::args::OscilloscopeMsmtType;
+use crate::args::{MeasurementEnvironment, OscilloscopeMsmtType};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct Output {
+    pub(crate) measurement_environment: MeasurementEnvironment,
     pub(crate) jetson_results: Option<Results>,
     pub(crate) shelly_results: Option<Results>,
     pub(crate) oscilloscope_results: Option<OscilloscopeResults>,
+    pub(crate) tek_scope_results: Option<TekScopeResults>,
     pub(crate) firmware_results: Option<Results>
 }
 
@@ -50,4 +52,10 @@ pub(crate) struct OscilloscopeResults {
     pub(crate) sample_rate: f64,
     pub(crate) use_voltage: bool,
     pub(crate) msmt_type: OscilloscopeMsmtType
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct TekScopeResults {
+    pub(crate) results: Results,
+    pub(crate) sample_rate: f64,
 }

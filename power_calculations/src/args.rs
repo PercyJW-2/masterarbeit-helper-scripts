@@ -4,7 +4,7 @@ use serde::Serialize;
 
 const DEFAULT_THRESHOLD: f64 = 1. / 10.;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub(crate) enum MeasurementEnvironment {
     Static,
     Jetson,
@@ -73,9 +73,6 @@ pub(crate) struct Firmware {
     /// samplerate that was used to record firmware data
     #[bpaf(short, long, fallback(2000.), display_fallback)]
     pub(crate) samplerate: f64,
-    /// measurement environment to mitigate calibration errors
-    #[bpaf(short, long, fallback(MeasurementEnvironment::Jetson), display_fallback)]
-    pub(crate) environment: MeasurementEnvironment
 }
 
 #[derive(Bpaf, Debug, Clone)]
@@ -143,15 +140,37 @@ pub(crate) struct Oscilloscope {
         display_fallback
     )]
     pub(crate) measurement_type: OscilloscopeMsmtType,
-    /// measurement environment to select correct voltage estimation
-    #[bpaf(short, long, fallback(MeasurementEnvironment::Jetson), display_fallback)]
-    pub(crate) environment: MeasurementEnvironment
 }
 
 #[derive(Bpaf, Debug, Clone)]
 pub(crate) enum OscilloscopeEnum {
     #[bpaf(command, adjacent)]
     Oscilloscope(#[bpaf(external(oscilloscope))] Oscilloscope),
+    #[bpaf(command)]
+    None,
+}
+
+#[derive(Bpaf, Debug, Clone)]
+pub(crate) struct Tekscope {
+    /// expected maximum energy value of measurement window of duration determined in frame_size
+    #[bpaf(short, long)]
+    pub(crate) predicted_maximum: Option<f64>,
+    /// expected minimum energy value of measurement window of duration determined in frame_size
+    #[bpaf(short, long)]
+    pub(crate) predicted_minimum: Option<f64>,
+    /// averaging frame size - configures duration of frame size which is used to detect the
+    /// beginning of the dataset. unit is in seconds
+    #[bpaf(short, long, fallback(DEFAULT_THRESHOLD), display_fallback)]
+    pub(crate) frame_size: f64,
+    /// oscilloscope samplerate, unit is in samples per second
+    #[bpaf(short, long, fallback(5_000_000.), display_fallback)]
+    pub(crate) samplerate: f64,
+}
+
+#[derive(Bpaf, Debug, Clone)]
+pub(crate) enum TekScopeEnum {
+    #[bpaf(command, adjacent)]
+    TekScope(#[bpaf(external(tekscope))] Tekscope),
     #[bpaf(command)]
     None,
 }
@@ -229,12 +248,18 @@ pub(crate) struct Args {
     /// Apply Lowpass-Filter on u.RECS and Oscilloscope data. Frequency=25%*Sample-Rate
     #[bpaf(short('f'), long)]
     pub(crate) apply_filter: bool,
+    /// measurement environment to mitigate calibration errors
+    #[bpaf(short, long, fallback(MeasurementEnvironment::Jetson), display_fallback)]
+    pub(crate) environment: MeasurementEnvironment,
     /// Settings for firmware measurements
     #[bpaf(external, fallback(FirmwareEnum::None))]
     pub(crate) firmware_enum: FirmwareEnum,
     /// Settings for oscilloscope measurements
     #[bpaf(external, fallback(OscilloscopeEnum::None))]
     pub(crate) oscilloscope_enum: OscilloscopeEnum,
+    /// Settings for tekscope measurements
+    #[bpaf(external, fallback(TekScopeEnum::None))]
+    pub(crate) tek_scope_enum: TekScopeEnum,
     /// Settings for shelly measurements
     #[bpaf(external, fallback(ShellyEnum::None))]
     pub(crate) shelly_enum: ShellyEnum,
