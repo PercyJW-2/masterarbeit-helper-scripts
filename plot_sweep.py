@@ -264,7 +264,9 @@ if __name__ == "__main__":
     #    np.median(energy_per_sample, axis=1),
     #    fill=True,
     # )
+    _, ax = plt.subplots(1, 1)
     energies = np.array(energies)
+    plot_as_scatterplot(energies, ax)
     energies = replace_outliers_with_nan(energies)
     plot_data(energies, axs[0])
     axs[0].set_ylabel("Energie (J)")
@@ -319,7 +321,9 @@ if __name__ == "__main__":
         fill=False,
     )
     axs[2].set_ylabel("Prozent (%)")
-    axs[2].set_title("Abweichung des Mittelwerts einer Abtastrate vom Mittelwert aller Abtastraten-Mediane")
+    axs[2].set_title(
+        "Abweichung des Mittelwerts einer Abtastrate vom Mittelwert aller Abtastraten-Mediane"
+    )
     energy_per_sample_median = np.median(np.array(energy_per_sample), axis=1)
     # for samplerate in samplerates[:-10]:
     #     print(f"\\rotatebox{{90}}{{\\SI{{{samplerate}}}{{S/\\second}}}} &")

@@ -47,7 +47,7 @@ for current_config in "${benchmark_configs[@]}"; do
   # uv run measurement_suite.py -c "ssh nx@10.42.0.200 /usr/src/tensorrt/bin/trtexec --loadEngine=$engine_path --iterations=$engine_iterations" \
   #   -m /mnt/6e97041d-abf4-4100-8bef-9111a0c14742/power_measurements/finishedMeasurements/samplerates/"$run_path" -r 15 -p \
   #   --picoscope_use_measured_voltages --pico_samplerate_sweep
-  uv run measurement_suite.py -c "ssh nx@10.42.0.200 $cmd" \
+  uv run measurement_suite.py -c "ssh nx@10.42.0.44 $cmd" \
     -m /mnt/6e97041d-abf4-4100-8bef-9111a0c14742/power_measurements/finishedMeasurements/durations/"$run_path" -r 15 -p \
     --picoscope_samplerate 2000 --duration_sweep --measurement_environment jetson -s -f -j
   sshpass -f /home/jwachsmuth/.ssh/pass_file ssh twix mkdir /homes/jwachsmuth/power_measurements/durations_without_filter/"$run_path"

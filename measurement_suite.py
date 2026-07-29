@@ -147,7 +147,7 @@ def start_run(
     if args.shelly:
         data_collection_command += f" shelly-plug --address={args.shelly_address}"
     if args.picoscope:
-        data_collection_command += f" usb-oscilloscope --sample-rate={pico_samplerate_override} --measurement-type={args.picoscope_measurement_type}"
+        data_collection_command += f" usb-oscilloscope --sample-rate={pico_samplerate_override} --measurement-type={args.picoscope_measurement_type} --msmt-environment={args.measurement_environment}"
     logger.info(data_collection_command)
     power_calculation_command = f"power_calculations -m={storage_path.as_posix()} -c -r --estimated-duration={int(duration_override + 2)}"
     if args.apply_filter:

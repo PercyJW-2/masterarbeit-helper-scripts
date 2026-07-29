@@ -74,7 +74,7 @@ if __name__ == "__main__":
     ret: tuple[Figure, np.ndarray] = plt.subplots(1, 2)
     fig, axs = ret
     axs_l: list[Axes] = list(axs.ravel())
-    fig.set_size_inches((15, 10))
+    fig.set_size_inches((7.5, 5))
 
     if len(jetson_w) > 0:
         axs_l[0].boxplot(
@@ -93,6 +93,7 @@ if __name__ == "__main__":
     axs_l[0].set_title("Power Overview")
 
     pico_median = np.median(pico_w)
+    print("pico_median: ", pico_median)
     urecs_median = np.median(urecs_w)
     shelly_median = np.median(shelly_w)
     jetson_median = 0

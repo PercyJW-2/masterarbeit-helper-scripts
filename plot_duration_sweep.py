@@ -118,7 +118,7 @@ if __name__ == "__main__":
     fig, axs = ret
     axs_l: list[Axes] = list(axs.ravel())
 
-    fig.set_size_inches((20, 10))
+    fig.set_size_inches((10, 5))
 
     y_label_font_size = 12
 
@@ -150,6 +150,25 @@ if __name__ == "__main__":
     )
     fig.tight_layout()
     plt.savefig("duration_sweep_boxplot.pdf")
+
+    plt.figure()
+
+    plt.plot(
+        [5, 10, 20, 50, 100, 200, 300, 400, 500, 600],
+        [x[0] for x in median_joule_per_second_values],
+    )
+    plt.plot(
+        [5, 10, 20, 50, 100, 200, 300, 400, 500, 600],
+        [x[1] for x in median_joule_per_second_values],
+    )
+    plt.plot(
+        [5, 10, 20, 50, 100, 200, 300, 400, 500, 600],
+        [x[2] for x in median_joule_per_second_values],
+    )
+    plt.plot(
+        [5, 10, 20, 50, 100, 200, 300, 400, 500, 600],
+        [x[3] for x in median_joule_per_second_values],
+    )
     if not args.skip_plot:
         plt.show()
 
@@ -157,7 +176,7 @@ if __name__ == "__main__":
     fig, axs = ret
     axs_l: list[Axes] = list(axs.ravel())
 
-    fig.set_size_inches((20, 5))
+    fig.set_size_inches((10, 2.5))
 
     urecs_diffs = []
     for ax, duration, median_energy in zip(axs_l, durations, median_energy_values):
