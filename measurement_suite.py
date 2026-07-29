@@ -84,6 +84,16 @@ parser.add_argument(
     help="Per default a Voltage estimation is used, as the urecs cannot measure the voltage and this setting is used to override the parity between both modes",
     action="store_true",
 )
+parser.add_argument("-T", "--tek_scope", help="Measure TekScope", action="store_true")
+parser.add_argument(
+    "--tek_scope_address", help="Network Address of the TekScope", default="tbd"
+)
+parser.add_argument(
+    "--tek_scope_samplerate",
+    help="Samplerate of the tekscope to be used, choose value configured on hardware",
+    default=5000000,
+    type=int,
+)
 parser.add_argument("-s", "--shelly", help="Measure shelly plug", action="store_true")
 parser.add_argument(
     "--shelly_address", help="Network Address of the Shelly Plug", default="10.42.0.70"
@@ -148,8 +158,10 @@ def start_run(
         data_collection_command += f" shelly-plug --address={args.shelly_address}"
     if args.picoscope:
         data_collection_command += f" usb-oscilloscope --sample-rate={pico_samplerate_override} --measurement-type={args.picoscope_measurement_type} --msmt-environment={args.measurement_environment}"
+    if args.tek_scope:
+        data_collection_command += f" oscilloscope --address{args.tek_scope_address}"
     logger.info(data_collection_command)
-    power_calculation_command = f"power_calculations -m={storage_path.as_posix()} -c -r --estimated-duration={int(duration_override + 2)}"
+    power_calculation_command = f"power_calculations -m={storage_path.as_posix()} -c -r --estimated-duration={int(duration_override + 2)} --environment={args.measurement_environment}"
     if args.apply_filter:
         power_calculation_command += " -f"
     power_calculation_methods = ""
@@ -157,11 +169,17 @@ def start_run(
     if args.use_complete_measurement:
         power_cut_section_command = " --predicted-maximum=0.0001 --predicted-minimum=0"
     if args.fast_firmware:
-        power_calculation_methods += f" firmware -s={args.fast_firmware_samplerate}{power_cut_section_command} --environment={args.measurement_environment}"
+        power_calculation_methods += (
+            f" firmware -s={args.fast_firmware_samplerate}{power_cut_section_command}"
+        )
     if args.picoscope:
-        power_calculation_methods += f" oscilloscope -s={pico_samplerate_override} -m={args.picoscope_measurement_type}{power_cut_section_command} --environment={args.measurement_environment}"
+        power_calculation_methods += f" oscilloscope -s={pico_samplerate_override} -m={args.picoscope_measurement_type}{power_cut_section_command}"
         if args.picoscope_use_measured_voltages:
             power_calculation_methods += " -v"
+    if args.tek_scope:
+        power_calculation_methods += (
+            f" -s={args.tek_scope_samplerate}{power_cut_section_command}"
+        )
     if args.shelly:
         power_calculation_methods += f" shelly{power_cut_section_command}"
     if args.jetson:
