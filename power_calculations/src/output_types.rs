@@ -9,7 +9,8 @@ pub(crate) struct Output {
     pub(crate) shelly_results: Option<Results>,
     pub(crate) oscilloscope_results: Option<OscilloscopeResults>,
     pub(crate) tek_scope_results: Option<TekScopeResults>,
-    pub(crate) firmware_results: Option<Results>
+    pub(crate) firmware_results: Option<Results>,
+    pub(crate) hailo_rt_results: Option<Results>
 }
 
 impl Display for Output {

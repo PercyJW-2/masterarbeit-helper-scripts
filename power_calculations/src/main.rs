@@ -99,6 +99,33 @@ fn main() -> io::Result<()> {
         None
     };
 
+    let hailo_results = if let Some(hailo_prefs) = &args.hailo_r_t {
+        info!("Calculating Hailo results");
+        const HAILO_TRIGGER_FACTOR: f64 = 0.05; // TODO factor is not calibrated
+        let results = calculate_results(
+            &args,
+            "hailo_rt.parquet",
+            |raw_row| {
+                let cols = raw_row.into_columns();
+                let hailo_time = field_to_u64(&cols[0].1).expect("Could not parse Field");
+                let hailo_power = field_to_f32(&cols[1].1).expect("Could not parse Field");
+                Ok(PowerSample::Variable(
+                    hailo_time as f64 / 1_000_000.,
+                    hailo_power as f64
+                ))
+            },
+            false,
+            HAILO_TRIGGER_FACTOR,
+            hailo_prefs.msmt_method.predicted_maximum.zip(hailo_prefs.msmt_method.predicted_minimum),
+            hailo_prefs.msmt_method.frame_size,
+            None,
+            "hailo_rt.py",
+        )?;
+        Some(results)
+    } else {
+        None
+    };
+
     let osc_results = if let Some(osc_prefs) = &args.oscilloscope {
         info!("Calculating OSC results");
         const OSC_TRIGGER_FACTOR: f64 = 0.25;
@@ -219,6 +246,7 @@ fn main() -> io::Result<()> {
             sample_rate: args.tekscope.as_ref().unwrap().samplerate
         }),
         firmware_results: firmware_results.clone(),
+        hailo_rt_results: hailo_results.clone(),
     };
 
     info!("{}", results);
