@@ -59,7 +59,7 @@ impl Display for MeasurementEnvironment {
 }
 
 #[derive(Bpaf, Debug, Clone)]
-pub(crate) struct Firmware {
+pub(crate) struct MsmtMethod {
     /// expected maximum energy value of measurement window of duration determined in frame_size
     #[bpaf(short, long)]
     pub(crate) predicted_maximum: Option<f64>,
@@ -70,17 +70,16 @@ pub(crate) struct Firmware {
     /// beginning of the dataset. unit is in seconds
     #[bpaf(short, long, fallback(DEFAULT_THRESHOLD), display_fallback)]
     pub(crate) frame_size: f64,
-    /// samplerate that was used to record firmware data
-    #[bpaf(short, long, fallback(2000.), display_fallback)]
-    pub(crate) samplerate: f64,
 }
 
 #[derive(Bpaf, Debug, Clone)]
-pub(crate) enum FirmwareEnum {
-    #[bpaf(command, adjacent)]
-    Firmware(#[bpaf(external(firmware))] Firmware),
-    #[bpaf(command)]
-    None,
+#[bpaf(command("firmware"), adjacent)]
+pub(crate) struct Firmware {
+    #[bpaf(external)]
+    pub(crate) msmt_method: MsmtMethod,
+    /// samplerate that was used to record firmware data
+    #[bpaf(short, long, fallback(2000.), display_fallback)]
+    pub(crate) samplerate: f64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -114,17 +113,10 @@ impl Display for OscilloscopeMsmtType {
 }
 
 #[derive(Bpaf, Debug, Clone)]
+#[bpaf(command("oscilloscope"), adjacent)]
 pub(crate) struct Oscilloscope {
-    /// expected maximum energy value of measurement window of duration determined in frame_size
-    #[bpaf(short, long)]
-    pub(crate) predicted_maximum: Option<f64>,
-    /// expected minimum energy value of measurement window of duration determined in frame_size
-    #[bpaf(short, long)]
-    pub(crate) predicted_minimum: Option<f64>,
-    /// averaging frame size - configures duration of frame size which is used to detect the
-    /// beginning of the dataset. unit is in seconds
-    #[bpaf(short, long, fallback(DEFAULT_THRESHOLD), display_fallback)]
-    pub(crate) frame_size: f64,
+    #[bpaf(external)]
+    pub(crate) msmt_method: MsmtMethod,
     /// use osc-voltage measurement instead of voltage estimation
     #[bpaf(short('v'), long)]
     pub(crate) use_voltage: bool,
@@ -143,81 +135,36 @@ pub(crate) struct Oscilloscope {
 }
 
 #[derive(Bpaf, Debug, Clone)]
-pub(crate) enum OscilloscopeEnum {
-    #[bpaf(command, adjacent)]
-    Oscilloscope(#[bpaf(external(oscilloscope))] Oscilloscope),
-    #[bpaf(command)]
-    None,
-}
-
-#[derive(Bpaf, Debug, Clone)]
+#[bpaf(command("tekscope"), adjacent)]
 pub(crate) struct Tekscope {
-    /// expected maximum energy value of measurement window of duration determined in frame_size
-    #[bpaf(short, long)]
-    pub(crate) predicted_maximum: Option<f64>,
-    /// expected minimum energy value of measurement window of duration determined in frame_size
-    #[bpaf(short, long)]
-    pub(crate) predicted_minimum: Option<f64>,
-    /// averaging frame size - configures duration of frame size which is used to detect the
-    /// beginning of the dataset. unit is in seconds
-    #[bpaf(short, long, fallback(DEFAULT_THRESHOLD), display_fallback)]
-    pub(crate) frame_size: f64,
+    #[bpaf(external)]
+    pub(crate) msmt_method: MsmtMethod,
     /// oscilloscope samplerate, unit is in samples per second
     #[bpaf(short, long, fallback(5_000_000.), display_fallback)]
     pub(crate) samplerate: f64,
 }
 
 #[derive(Bpaf, Debug, Clone)]
-pub(crate) enum TekScopeEnum {
-    #[bpaf(command, adjacent)]
-    TekScope(#[bpaf(external(tekscope))] Tekscope),
-    #[bpaf(command)]
-    None,
-}
-
-#[derive(Bpaf, Debug, Clone)]
+#[bpaf(command("shelly"), adjacent)]
 pub(crate) struct Shelly {
-    /// expected maximum energy value of measurement window of duration determined in frame_size
-    #[bpaf(short, long)]
-    pub(crate) predicted_maximum: Option<f64>,
-    /// expected minimum energy value of measurement window of duration determined in frame_size
-    #[bpaf(short, long)]
-    pub(crate) predicted_minimum: Option<f64>,
-    /// averaging frame size - configures duration of frame size which is used to detect the
-    /// beginning of the dataset. unit is in seconds
-    #[bpaf(short, long, fallback(DEFAULT_THRESHOLD), display_fallback)]
-    pub(crate) frame_size: f64,
+    #[bpaf(external)]
+    pub(crate) msmt_method: MsmtMethod
 }
 
 #[derive(Bpaf, Debug, Clone)]
-pub(crate) enum ShellyEnum {
-    #[bpaf(command, adjacent)]
-    Shelly(#[bpaf(external(shelly))] Shelly),
-    #[bpaf(command)]
-    None,
-}
-
-#[derive(Bpaf, Debug, Clone)]
+#[bpaf(command("jetson"), adjacent)]
 pub(crate) struct Jetson {
-    /// expected maximum energy value of measurement window of duration determined in frame_size
-    #[bpaf(short, long)]
-    pub(crate) predicted_maximum: Option<f64>,
-    /// expected minimum energy value of measurement window of duration determined in frame_size
-    #[bpaf(short, long)]
-    pub(crate) predicted_minimum: Option<f64>,
-    /// averaging frame size - configures duration of frame size which is used to detect the
-    /// beginning of the dataset. unit is in seconds
-    #[bpaf(short, long, fallback(DEFAULT_THRESHOLD), display_fallback)]
-    pub(crate) frame_size: f64,
+    #[bpaf(external)]
+    pub(crate) msmt_method: MsmtMethod
 }
 
 #[derive(Bpaf, Debug, Clone)]
-pub(crate) enum JetsonEnum {
-    #[bpaf(command, adjacent)]
-    Jetson(#[bpaf(external(jetson))] Jetson),
-    #[bpaf(command)]
-    None,
+#[bpaf(command("hailo_rt"), adjacent)]
+pub(crate) struct HailoRT {
+    #[bpaf(external)]
+    pub(crate) msmt_method: MsmtMethod
 }
+
 #[derive(Debug, Clone, Bpaf)]
 #[bpaf(options, version)]
 pub(crate) struct Args {
@@ -252,18 +199,21 @@ pub(crate) struct Args {
     #[bpaf(short, long, fallback(MeasurementEnvironment::Jetson), display_fallback)]
     pub(crate) environment: MeasurementEnvironment,
     /// Settings for firmware measurements
-    #[bpaf(external, fallback(FirmwareEnum::None))]
-    pub(crate) firmware_enum: FirmwareEnum,
+    #[bpaf(external, optional)]
+    pub(crate) firmware: Option<Firmware>,
     /// Settings for oscilloscope measurements
-    #[bpaf(external, fallback(OscilloscopeEnum::None))]
-    pub(crate) oscilloscope_enum: OscilloscopeEnum,
+    #[bpaf(external, optional)]
+    pub(crate) oscilloscope: Option<Oscilloscope>,
     /// Settings for tekscope measurements
-    #[bpaf(external, fallback(TekScopeEnum::None))]
-    pub(crate) tek_scope_enum: TekScopeEnum,
+    #[bpaf(external, optional)]
+    pub(crate) tekscope: Option<Tekscope>,
     /// Settings for shelly measurements
-    #[bpaf(external, fallback(ShellyEnum::None))]
-    pub(crate) shelly_enum: ShellyEnum,
+    #[bpaf(external, optional)]
+    pub(crate) shelly: Option<Shelly>,
     /// Settings for jetson measurements
-    #[bpaf(external, fallback(JetsonEnum::None))]
-    pub(crate) jetson_enum: JetsonEnum,
+    #[bpaf(external, optional)]
+    pub(crate) jetson: Option<Jetson>,
+    /// Settings for hailort measurements
+    #[bpaf(external, optional)]
+    pub(crate) hailo_r_t: Option<HailoRT>
 }

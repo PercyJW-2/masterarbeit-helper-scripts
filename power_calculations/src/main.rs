@@ -21,20 +21,7 @@ fn main() -> io::Result<()> {
         .init().unwrap();
     let args = args().run();
 
-    let firmware_prefs = match &args.firmware_enum {
-        FirmwareEnum::None => None,
-        FirmwareEnum::Firmware(firmware) => Some(firmware),
-    };
-    let osc_prefs = match &args.oscilloscope_enum {
-        OscilloscopeEnum::None => None,
-        OscilloscopeEnum::Oscilloscope(oscilloscope) => Some(oscilloscope),
-    };
-    let tek_prefs = match &args.tek_scope_enum {
-        TekScopeEnum::None => None,
-        TekScopeEnum::TekScope(tekscope) => Some(tekscope),
-    };
-
-    let jetson_results = if let JetsonEnum::Jetson(jetson_prefs) = &args.jetson_enum {
+    let jetson_results = if let Some(jetson_prefs) = &args.jetson {
         info!("Calculating Jetson results");
         const JETSON_TRIGGER_FACTOR: f64 = 0.1;
         let results = calculate_results(
@@ -57,9 +44,10 @@ fn main() -> io::Result<()> {
             false,
             JETSON_TRIGGER_FACTOR,
             jetson_prefs
+                .msmt_method
                 .predicted_maximum
-                .zip(jetson_prefs.predicted_minimum),
-            jetson_prefs.frame_size,
+                .zip(jetson_prefs.msmt_method.predicted_minimum),
+            jetson_prefs.msmt_method.frame_size,
             None,
             "jetson.npy",
         )?;
@@ -68,7 +56,7 @@ fn main() -> io::Result<()> {
         None
     };
 
-    let shelly_results = if let ShellyEnum::Shelly(shelly_prefs) = &args.shelly_enum {
+    let shelly_results = if let Some(shelly_prefs) = &args.shelly {
         info!("Calculating shelly results");
         const SHELLY_TRIGGER_FACTOR: f64 = 0.05;
         let results = calculate_results(
@@ -99,9 +87,10 @@ fn main() -> io::Result<()> {
             false,
             SHELLY_TRIGGER_FACTOR,
             shelly_prefs
+                .msmt_method
                 .predicted_maximum
-                .zip(shelly_prefs.predicted_minimum),
-            shelly_prefs.frame_size,
+                .zip(shelly_prefs.msmt_method.predicted_minimum),
+            shelly_prefs.msmt_method.frame_size,
             None,
             "shelly.npy",
         )?;
@@ -110,7 +99,7 @@ fn main() -> io::Result<()> {
         None
     };
 
-    let osc_results = if let Some(osc_prefs) = &osc_prefs {
+    let osc_results = if let Some(osc_prefs) = &args.oscilloscope {
         info!("Calculating OSC results");
         const OSC_TRIGGER_FACTOR: f64 = 0.25;
         let results = calculate_results(
@@ -143,8 +132,8 @@ fn main() -> io::Result<()> {
             },
             args.apply_filter,
             OSC_TRIGGER_FACTOR,
-            osc_prefs.predicted_maximum.zip(osc_prefs.predicted_minimum),
-            osc_prefs.frame_size,
+            osc_prefs.msmt_method.predicted_maximum.zip(osc_prefs.msmt_method.predicted_minimum),
+            osc_prefs.msmt_method.frame_size,
             Some(osc_prefs.samplerate),
             "oscilloscope.npy",
         )?;
@@ -153,7 +142,7 @@ fn main() -> io::Result<()> {
         None
     };
 
-    let tekscope_results = if let Some(tek_prefs) = &tek_prefs {
+    let tekscope_results = if let Some(tek_prefs) = &args.tekscope {
         info!("Calculating TekScope results");
         const TEK_TRIGGER_FACTOR: f64 = 0.25;
         let results = calculate_results(
@@ -170,8 +159,8 @@ fn main() -> io::Result<()> {
             },
             args.apply_filter,
             TEK_TRIGGER_FACTOR,
-            tek_prefs.predicted_maximum.zip(tek_prefs.predicted_minimum),
-            tek_prefs.frame_size,
+            tek_prefs.msmt_method.predicted_maximum.zip(tek_prefs.msmt_method.predicted_minimum),
+            tek_prefs.msmt_method.frame_size,
             Some(tek_prefs.samplerate),
             "tekScope.npy",
         )?;
@@ -180,7 +169,7 @@ fn main() -> io::Result<()> {
         None
     };
 
-    let firmware_results = if let Some(firmware_prefs) = &firmware_prefs {
+    let firmware_results = if let Some(firmware_prefs) = &args.firmware {
         info!("Calculating Firmware results");
         const FIRMWARE_TRIGGER_FACTOR: f64 = 0.25;
         let results = calculate_results(
@@ -203,9 +192,10 @@ fn main() -> io::Result<()> {
             args.apply_filter,
             FIRMWARE_TRIGGER_FACTOR,
             firmware_prefs
+                .msmt_method
                 .predicted_maximum
-                .zip(firmware_prefs.predicted_minimum),
-            firmware_prefs.frame_size,
+                .zip(firmware_prefs.msmt_method.predicted_minimum),
+            firmware_prefs.msmt_method.frame_size,
             Some(firmware_prefs.samplerate),
             "firmware_power.npy",
         )?;
@@ -220,13 +210,13 @@ fn main() -> io::Result<()> {
         shelly_results: shelly_results.clone(),
         oscilloscope_results: osc_results.clone().map(|osc_res| OscilloscopeResults {
             results: osc_res,
-            sample_rate: osc_prefs.unwrap().samplerate,
-            use_voltage: osc_prefs.unwrap().use_voltage,
-            msmt_type: osc_prefs.unwrap().measurement_type.clone(),
+            sample_rate: args.oscilloscope.as_ref().unwrap().samplerate,
+            use_voltage: args.oscilloscope.as_ref().unwrap().use_voltage,
+            msmt_type: args.oscilloscope.as_ref().unwrap().measurement_type.clone(),
         }),
         tek_scope_results: tekscope_results.clone().map(|tek_res| TekScopeResults {
             results: tek_res,
-            sample_rate: tek_prefs.unwrap().samplerate
+            sample_rate: args.tekscope.as_ref().unwrap().samplerate
         }),
         firmware_results: firmware_results.clone(),
     };
@@ -260,8 +250,8 @@ fn main() -> io::Result<()> {
                 script.call1(
                     py,
                     (
-                        firmware_prefs.map_or(2_000., |pref| pref.samplerate),
-                        osc_prefs.map_or(5_000_000., |pref| pref.samplerate),
+                        args.firmware.as_ref().map_or(2_000., |pref| pref.samplerate),
+                        args.oscilloscope.as_ref().map_or(5_000_000., |pref| pref.samplerate),
                         args.output_path,
                         firmware_results.map_or((0, 0), |res| res.start_stop_idx.unwrap_or((0, 0))),
                         osc_results.map_or((0, 0), |res| res.start_stop_idx.unwrap_or((0, 0))),
@@ -273,8 +263,8 @@ fn main() -> io::Result<()> {
                 script.call1(
                     py,
                     (
-                        firmware_prefs.map_or(2_000., |pref| pref.samplerate),
-                        osc_prefs.map_or(5_000_000., |pref| pref.samplerate),
+                        args.firmware.as_ref().map_or(2_000., |pref| pref.samplerate),
+                        args.oscilloscope.as_ref().map_or(5_000_000., |pref| pref.samplerate),
                         args.output_path,
                     ),
                 )
