@@ -51,9 +51,7 @@ def calc_avg_power(directory: str) -> tuple[float, float, float, float, float, f
     )
 
 
-folder = os.scandir(
-    "/mnt/6e97041d-abf4-4100-8bef-9111a0c14742/power_measurements/static_analysis/"
-)
+folder = os.scandir("/media/jwachsmuth/satassd//power_measurements/static_analysis/")
 
 values = {}
 current_vals = []

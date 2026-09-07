@@ -1,201 +1,86 @@
-import argparse
-import subprocess
-import time
 import logging
+import subprocess
+import sys
+import time
 from pathlib import Path
+from typing import Annotated
+
+import typer
 import yaml
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-parser = argparse.ArgumentParser(
-    prog="MeasruementSuite",
-    description="Collects run-duration and then does multiple measurements with an provided command",
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-)
-
-parser.add_argument(
-    "-c",
-    "--command",
-    help="command that executes the stresstest to be measured",
-    required=True,
-)
-parser.add_argument(
-    "-d",
-    "--duration",
-    required=False,
-    help="If the Duration is already known it can be provided here. The Unit is in Seconds",
-    type=float,
-)
-parser.add_argument(
-    "-m",
-    "--measurement_path",
-    help="Location where all measurements are stored",
-    required=True,
-)
-parser.add_argument(
-    "-r",
-    "--run_count",
-    help="Amount of runs that will be executed",
-    type=int,
-    required=True,
-)
-parser.add_argument(
-    "-f", "--fast_firmware", help="Measure fast-firmware", action="store_true"
-)
-parser.add_argument(
-    "--fast_firmware_samplerate", help="Samplerate of fast_firmware", default=2000
-)
-parser.add_argument(
-    "--fast_firmware_channel",
-    help="Select which Channel on the uRECS is measured, Jetson Current is Channel 2, M.2 is Channel 5",
-    default=5,
-)
-parser.add_argument(
-    "-F",
-    "--firmware",
-    help="Measure default firmware, data analysis is currently not implemented for this measurement",
-    action="store_true",
-)
-parser.add_argument(
-    "--firmware_address",
-    help="Address of u.RECS Management Controller",
-    default="10.42.0.162",
-)
-parser.add_argument(
-    "--measurement_environment",
-    help="u.RECS needs a correction factor that is associated to the measurement environment, options are Static, Jetson and M.2.",
-    default="M.2",
-)
-parser.add_argument("-p", "--picoscope", help="Measure picoscope", action="store_true")
-parser.add_argument(
-    "--picoscope_samplerate",
-    help="Samplerate of the scope to be used, choose value between 50 and 5000000",
-    default=5000000,
-    type=int,
-)
-parser.add_argument(
-    "--picoscope_measurement_type",
-    help="measurement type connected to picoscope, options are UCurrent, CurrentRanger and INA225.",
-    default="INA225",
-)
-parser.add_argument(
-    "--picoscope_use_measured_voltages",
-    help="Per default a Voltage estimation is used, as the urecs cannot measure the voltage and this setting is used to override the parity between both modes",
-    action="store_true",
-)
-parser.add_argument("-T", "--tek_scope", help="Measure TekScope", action="store_true")
-parser.add_argument(
-    "--tek_scope_address", help="Network Address of the TekScope", default="tbd"
-)
-parser.add_argument(
-    "--tek_scope_samplerate",
-    help="Samplerate of the tekscope to be used, choose value configured on hardware",
-    default=5000000,
-    type=int,
-)
-parser.add_argument("-s", "--shelly", help="Measure shelly plug", action="store_true")
-parser.add_argument(
-    "--shelly_address", help="Network Address of the Shelly Plug", default="10.42.0.70"
-)
-parser.add_argument("-j", "--jetson", help="Measure jetson", action="store_true")
-parser.add_argument(
-    "--jetson_address",
-    help="Network Address of the Nvidia Jetson",
-    default="10.42.0.44",
-)
-parser.add_argument(
-    "--skip_power_calculation",
-    help="Skips power calculation and just stores the raw and uncalibrated recorded data",
-    action="store_true",
-)
-parser.add_argument(
-    "--pico_samplerate_sweep",
-    help="In the measurement_path folder there are multiple folders that have the format XSps which are used to determine the sample-rate of the measurement",
-    action="store_true",
-)
-parser.add_argument(
-    "--use_complete_measurement",
-    help="Use this mode to calculate the energy of the complete measurement without cutting the start or end",
-    action="store_true",
-)
-parser.add_argument(
-    "--duration_sweep",
-    help="In the measurement_path folder there are multiple folders that have the format Xs which are used to determine the measurement duration",
-    action="store_true",
-)
-parser.add_argument(
-    "--apply_filter",
-    help="Applys Lowpass-Filter on u.RECS and oscilloscope data, Frequency=0.25*Samplerate",
-    action="store_true",
-)
+app = typer.Typer()
 
 
 def start_run(
-    args: argparse.Namespace,
+    args: dict,
     storage_path: Path,
     pico_samplerate_override: None | int = None,
     duration_override: None | int = None,
 ) -> int:
     logger.debug("building data collection command")
     if pico_samplerate_override is None:
-        pico_samplerate_override = args.picoscope_samplerate
-    command = args.command
+        pico_samplerate_override = args["picoscope_samplerate"]
+    command = args["command"]
     if duration_override is None:
-        duration_override = args.duration
+        duration_override = args["duration"]
         if duration_override is None:
-            exit(-3)
+            sys.exit(-3)
     else:
         command += f" {duration_override}"
     data_collection_command = f"urecs-data-collector -s={storage_path.as_posix()} -d={int(duration_override + 1)}s -c='{command}'"
-    if args.jetson:
-        data_collection_command += f" jetson --address={args.jetson_address} --data-port=8080 --control-port=8081"
-    if args.firmware:
-        data_collection_command += f" firmware --address={args.firmware_address}"
-    if args.fast_firmware:
-        data_collection_command += f" fast-firmware --address={args.firmware_address} --data-port=3000 --channel={args.fast_firmware_channel} --sample-rate={args.fast_firmware_samplerate}"
-    if args.shelly:
-        data_collection_command += f" shelly-plug --address={args.shelly_address}"
-    if args.picoscope:
-        data_collection_command += f" usb-oscilloscope --sample-rate={pico_samplerate_override} --measurement-type={args.picoscope_measurement_type} --msmt-environment={args.measurement_environment}"
-    if args.tek_scope:
-        data_collection_command += f" oscilloscope --address{args.tek_scope_address}"
+    if args["jetson"]:
+        data_collection_command += f" jetson --address={args['jetson_address']} --data-port=8080 --control-port=8081"
+    if args["hailo"]:
+        data_collection_command += f" hailo-r-t --address={args['hailo_address']} --data-port=4000 --control-port=4001"
+    if args["firmware"]:
+        data_collection_command += f" firmware --address={args['firmware_address']}"
+    if args["fast_firmware"]:
+        data_collection_command += f" fast-firmware --address={args['firmware_address']} --data-port=3000 --channel={args['fast_firmware_channel']} --sample-rate={args['fast_firmware_samplerate']}"
+    if args["shelly"]:
+        data_collection_command += f" shelly-plug --address={args['shelly_address']}"
+    if args["picoscope"]:
+        data_collection_command += f" usb-oscilloscope --sample-rate={pico_samplerate_override} --measurement-type={args['picoscope_measurement_type']} --msmt-environment={args['measurement_environment']}"
+    if args["tek_scope"]:
+        data_collection_command += f" oscilloscope --address{args['tek_scope_address']}"
     logger.info(data_collection_command)
-    power_calculation_command = f"power_calculations -m={storage_path.as_posix()} -c -r --estimated-duration={int(duration_override + 2)} --environment={args.measurement_environment}"
-    if args.apply_filter:
+    power_calculation_command = f"power_calculations -m={storage_path.as_posix()} -c -r --estimated-duration={int(duration_override + 2)} --environment={args['measurement_environment']}"
+    if args["apply_filter"]:
         power_calculation_command += " -f"
     power_calculation_methods = ""
     power_cut_section_command = ""
-    if args.use_complete_measurement:
+    if args["use_complete_measurement"]:
         power_cut_section_command = " --predicted-maximum=0.0001 --predicted-minimum=0"
-    if args.fast_firmware:
-        power_calculation_methods += (
-            f" firmware -s={args.fast_firmware_samplerate}{power_cut_section_command}"
-        )
-    if args.picoscope:
-        power_calculation_methods += f" oscilloscope -s={pico_samplerate_override} -m={args.picoscope_measurement_type}{power_cut_section_command}"
-        if args.picoscope_use_measured_voltages:
+    if args["fast_firmware"]:
+        power_calculation_methods += f" firmware -s={args['fast_firmware_samplerate']}{power_cut_section_command}"
+    if args["picoscope"]:
+        power_calculation_methods += f" oscilloscope -s={pico_samplerate_override} -m={args['picoscope_measurement_type']}{power_cut_section_command}"
+        if args["picoscope_use_measured_voltages"]:
             power_calculation_methods += " -v"
-    if args.tek_scope:
+    if args["tek_scope"]:
         power_calculation_methods += (
-            f" -s={args.tek_scope_samplerate}{power_cut_section_command}"
+            f" -s={args['tek_scope_samplerate']}{power_cut_section_command}"
         )
-    if args.shelly:
+    if args["shelly"]:
         power_calculation_methods += f" shelly{power_cut_section_command}"
-    if args.jetson:
+    if args["jetson"]:
         power_calculation_methods += f" jetson{power_cut_section_command}"
+    if args["hailo"]:
+        power_calculation_methods += f" hailo_rt{power_cut_section_command}"
 
     def execute_run(run_number: int, run_path) -> tuple[bool, bool]:
         if not run_path.exists():
             run_path.mkdir()
         logger.info(f"Starting run number {run_number}")
-        p = subprocess.run(data_collection_command, shell=True)
+        p = subprocess.run(data_collection_command, shell=True, check=False)
         try:
             p.check_returncode()
         except subprocess.CalledProcessError:
             logger.error("Recording Failed: retry engaged")
             return False, True
-        if args.skip_power_calculation:
+        if args["skip_power_calculation"]:
             logger.info("Moving recorded data into measurement folder")
             output_files = list(storage_path.glob("*.parquet"))
             for file in output_files:
@@ -208,7 +93,7 @@ def start_run(
             + power_calculation_methods
         )
         logger.debug(f"iteration_command: {iteration_command}")
-        p = subprocess.run(iteration_command, shell=True)
+        p = subprocess.run(iteration_command, shell=True, check=False)
         try:
             p.check_returncode()
         except subprocess.CalledProcessError:
@@ -223,7 +108,7 @@ def start_run(
     invalid_runs = 0
     planned_duration = int(duration_override + 2)
 
-    for run_number in range(args.run_count):
+    for run_number in range(args["run_count"]):
         duration_diff = planned_duration + 1
         while duration_diff > planned_duration * 0.1:
             if duration_diff < planned_duration:
@@ -263,46 +148,155 @@ def start_run(
     return invalid_runs
 
 
-if __name__ == "__main__":
-    args = parser.parse_args()
-
-    if args.fast_firmware and args.firmware:
+@app.command()
+def main(
+    command: Annotated[
+        str, typer.Option(help="command that executes the stresstest to be measured")
+    ],
+    measurement_path: Annotated[
+        str, typer.Option(help="Location where all measurements are stored")
+    ],
+    run_count: Annotated[
+        int, typer.Option(help="Amount of runs that will be executed")
+    ],
+    duration: Annotated[
+        float | None,
+        typer.Option(
+            help="If the duration is already known it can be provided here. The unit is in seconds"
+        ),
+    ] = None,
+    fast_firmware: Annotated[bool, typer.Option(help="Measure fast-firmware")] = False,
+    fast_firmware_samplerate: Annotated[
+        int, typer.Option(help="Samplerate of fast_firmware")
+    ] = 2000,
+    fast_firmware_channel: Annotated[
+        int,
+        typer.Option(
+            help="Select which Channel on the u.RECS is measured, jetson current is channel 2, m.2 is channel 5"
+        ),
+    ] = 5,
+    firmware: Annotated[
+        bool,
+        typer.Option(
+            help="Measure default firmware, data analysis is currently not implemented for this measurement"
+        ),
+    ] = False,
+    firmware_address: Annotated[
+        str, typer.Option(help="Address of u.RECS Management Controller")
+    ] = "10.42.0.162",
+    measurement_environment: Annotated[
+        str,
+        typer.Option(
+            help="u.RECS needs a correction factor that is associated to the measurement environment, options are Static, Jetson and M.2"
+        ),
+    ] = "M.2",
+    picoscope: Annotated[bool, typer.Option(help="Measure picoscope")] = False,
+    picoscope_measurement_type: Annotated[
+        str,
+        typer.Option(
+            help="measurement type connected to picoscope, options are UCurrent, CurrentRanger and INA225."
+        ),
+    ] = "INA225",
+    picoscope_samplerate: Annotated[
+        int,
+        typer.Option(
+            help="Samplerate of the scope to be used, choose value between 50 and 5000000"
+        ),
+    ] = 5_000_000,
+    picoscope_use_measured_voltages: Annotated[
+        bool,
+        typer.Option(
+            help="Per default a Voltage estimation is used, as the u.RECS cannot measure the voltage and the setting is used to override the parity between both modes"
+        ),
+    ] = False,
+    tek_scope: Annotated[bool, typer.Option(help="Measure TekScope")] = False,
+    tek_scope_address: Annotated[
+        str, typer.Option(help="Network Address of the TekScope")
+    ] = "10.42.0.48",
+    tek_scope_samplerate: Annotated[
+        int,
+        typer.Option(
+            help="Samplerate of the tekscope to be used, choose value configured on hardware"
+        ),
+    ] = 5_000_000,
+    shelly: Annotated[bool, typer.Option(help="Measure shelly plug")] = False,
+    shelly_address: Annotated[
+        str,
+        typer.Option(help="Network Address of the Shelly Plug"),
+    ] = "10.42.0.70",
+    jetson: Annotated[bool, typer.Option(help="Measure jetson")] = False,
+    jetson_address: Annotated[
+        str,
+        typer.Option(help="Network Address of the Jetson"),
+    ] = "10.42.0.44",
+    skip_power_calculation: Annotated[
+        bool,
+        typer.Option(
+            help="Skips power calculation and jsut stores the raw and uncalibrated recorded data"
+        ),
+    ] = False,
+    pico_samplerate_sweep: Annotated[
+        bool,
+        typer.Option(
+            help="In the measurement_path folder there are multiple folders that have the format XSps which are used to determine the sample-rate of the measurement"
+        ),
+    ] = False,
+    hailo: Annotated[bool, typer.Option(help="Measure hailo device")] = False,
+    hailo_address: Annotated[
+        str, typer.Option(help="Network Address of the Hailo Host")
+    ] = "10.42.0.44",
+    use_complete_measurement: Annotated[
+        bool,
+        typer.Option(
+            help="Use this mode to calculate the energy of the complete measurement without cutting the start or end"
+        ),
+    ] = False,
+    duration_sweep: Annotated[
+        bool,
+        typer.Option(
+            help="In the measurement_path folder there are multiple folders that have the format Xs which are used to determine the measurement duration"
+        ),
+    ] = False,
+    apply_filter: Annotated[
+        bool,
+        typer.Option(
+            help="Applys Lowpass-Filter on u.RECS and oscilloscope data, Frequency=0.25*Samplerate"
+        ),
+    ] = False,
+):
+    if fast_firmware and firmware:
         logger.error("Fast-Firmware and Firmware cannot be measured at the same time")
-        exit(-1)
-    if not (
-        args.fast_firmware
-        or args.firmware
-        or args.picoscope
-        or args.shelly
-        or args.jetson
-    ):
+        sys.exit(-1)
+    if not (fast_firmware or firmware or picoscope or shelly or jetson):
         logger.error("Choose at least one measurement method")
-        exit(-1)
+        sys.exit(-1)
 
-    storage_path = Path(args.measurement_path)
+    storage_path = Path(measurement_path)
     if not storage_path.exists():
         logger.error("Choose a folder that exists to store each run")
-        exit(-2)
+        sys.exit(-2)
 
-    if args.pico_samplerate_sweep and args.duration_sweep:
+    if pico_samplerate_sweep and duration_sweep:
         logger.error("Only one sweep type is possible at the same time")
 
-    if args.duration is None and not args.duration_sweep:
+    if duration is None and not duration_sweep:
         logger.info("Starting Dry-Run to determine duration")
         start = time.time()
-        subprocess.run(args.command, shell=True)
+        subprocess.run(command, shell=True, check=True)
         end = time.time()
-        args.duration = end - start
+        duration = end - start
+
+    args = locals()
 
     invalid_runs = 0
-    if args.pico_samplerate_sweep:
+    if pico_samplerate_sweep:
         for directory in [x for x in storage_path.iterdir() if x.is_dir()]:
             folder_name = directory.name
             samplerate = int(folder_name[:-3])
             logger.info(f"Starting Measurements with {samplerate}S/s")
             invalid_runs += start_run(args, directory, samplerate)
-    elif args.duration_sweep:
-        args.duration = 0
+    elif duration_sweep:
+        duration = 0
         for directory in [x for x in storage_path.iterdir() if x.is_dir()]:
             folder_name = directory.name
             duration = int(folder_name[:-1])
@@ -312,3 +306,7 @@ if __name__ == "__main__":
         invalid_runs = start_run(args, storage_path)
 
     (storage_path / f"invalid_runs_{invalid_runs}").touch()
+
+
+if __name__ == "__main__":
+    app()
