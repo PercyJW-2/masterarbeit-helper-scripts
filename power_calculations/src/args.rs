@@ -24,7 +24,8 @@ impl MeasurementEnvironment {
         match self {
             Self::Static => 0.,
             Self::Jetson => 0.2934,
-            Self::M2 => 0.0797,
+            // M2 without INA Self::M2 => 0.0797,
+            Self::M2 => 0.136,
         }
     }
 

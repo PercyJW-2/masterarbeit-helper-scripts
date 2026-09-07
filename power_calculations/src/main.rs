@@ -77,8 +77,11 @@ fn main() -> io::Result<()> {
                         .into(),
                 };
                 // apply calibration
-                let mut power = shelly_measurement.power - 41.36936767;
-                power *= 0.795372365;
+                // old shelly setup & optimized for jetson
+                // let mut power = shelly_measurement.power - 41.36936767;
+                // power *= 0.795372365;
+                let mut power = shelly_measurement.power - 13.3702620243055;
+                power *= 0.754773327011166;
                 Ok(PowerSample::Variable(
                     shelly_measurement.measurement_timestamp as f64 / 1_000_000.,
                     power,
@@ -146,7 +149,9 @@ fn main() -> io::Result<()> {
                         (pico_measurement.current + 0.00226039126953639) * 0.991674394344991
                     }
                     OscilloscopeMsmtType::INA225 => {
-                        (pico_measurement.current + 0.0004272598504) * 1.99000512058047
+                        // old msmt setup
+                        //(pico_measurement.current + 0.0004272598504) * 1.99000512058047
+                        (pico_measurement.current + 0.00113234708902438) * 1.99000905673597
                     }
                 };
                 let voltage = if osc_prefs.use_voltage {
@@ -209,8 +214,11 @@ fn main() -> io::Result<()> {
                     current: field_to_u16(&cols[1].1).expect("Could not parse Field"),
                 };
                 // apply calibration
-                let current_current = ((firmware_measurement.current as f64 / 1000.) + 0.004704622)
-                    * 0.997224237630222;
+                // old setup
+                // let current_current = ((firmware_measurement.current as f64 / 1000.) + 0.004704622)
+                //     * 0.997224237630222;
+                let current_current = ((firmware_measurement.current as f64 / 1000.) + 0.00320761237010142)
+                    * 1.00303845029306;
                 let current_power =
                     current_current * estimate_voltage_from_current(current_current * 1000., &args.environment);
                 let corrected_firmware_power = args.environment.get_scale_factor() * current_power;
