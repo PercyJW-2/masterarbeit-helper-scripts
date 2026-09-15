@@ -249,7 +249,7 @@ pub(crate) fn calc_energy(data: &PowerVec, samplerate_opt: Option<f64>, start_en
 
 /// current -> unit is in mA
 pub(crate) fn estimate_voltage_from_current(current: f64, env: &MeasurementEnvironment) -> f64 {
-    let voltage_drop = current * env.get_resistance();
+    let voltage_drop = current / 1000. * env.get_resistance();
     let voltage = env.get_initial_voltage() - voltage_drop;
     voltage
     // let curve_pos = current / 100.;
