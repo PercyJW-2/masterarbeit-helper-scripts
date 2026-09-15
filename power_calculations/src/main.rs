@@ -122,7 +122,7 @@ fn main() -> io::Result<()> {
             hailo_prefs.msmt_method.predicted_maximum.zip(hailo_prefs.msmt_method.predicted_minimum),
             hailo_prefs.msmt_method.frame_size,
             None,
-            "hailo_rt.py",
+            "hailo_rt.npy",
         )?;
         Some(results)
     } else {
