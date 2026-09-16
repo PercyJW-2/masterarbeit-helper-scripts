@@ -74,6 +74,12 @@ impl Display for Output {
         if let Some(firmware) = &self.firmware_results {
             writeln!(f, "Firmware:\t{}", firmware)?;
         }
+        if let Some(hailo) = &self.hailo_rt_results {
+            writeln!(f, "Hailo RT:\t{}", hailo)?;
+        }
+        if let Some(nv_gpu) = &self.nv_gpu_results {
+            writeln!(f, "Nvidia GPU:\t{}", nv_gpu)?;
+        }
         Ok(())
     }
 }
