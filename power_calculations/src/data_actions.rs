@@ -1,4 +1,7 @@
-use crate::data_reading_types::{PowerSample, PowerVec, WindowEnergyIter};
+use crate::data_reading_types::{
+    FirmwareMeasruement, HailoMeasurement, JetsonMeasurement, PicoMeasurement, PowerSample,
+    PowerVec, ShellyPlug, TekMeasurement, WindowEnergyIter,
+};
 use biquad::{Biquad, Coefficients, DirectForm1, Q_BUTTERWORTH_F64, ToHertz};
 use matplotlib::pyplot as plt;
 use npyz::WriterBuilder;
@@ -12,6 +15,144 @@ use parquet::record::Row;
 use crate::args::{Args, MeasurementEnvironment};
 use crate::data_reading::{init_reader, read_to_power_vector};
 use crate::output_types::Results;
+
+pub(crate) fn process_jetson(args: &Args) -> Result<Option<Results>> {
+    let Some(jetson_prefs) = &args.jetson else {
+        return Ok(None);
+    };
+    info!("Calculating Jetson results");
+    const JETSON_TRIGGER_FACTOR: f64 = 0.1;
+    let results = calculate_results(
+        args,
+        "jetson.parquet",
+        JetsonMeasurement::parse_sample,
+        false,
+        JETSON_TRIGGER_FACTOR,
+        jetson_prefs
+            .msmt_method
+            .predicted_maximum
+            .zip(jetson_prefs.msmt_method.predicted_minimum),
+        jetson_prefs.msmt_method.frame_size,
+        None,
+        "jetson.npy",
+    )?;
+    Ok(Some(results))
+}
+
+pub(crate) fn process_shelly(args: &Args) -> Result<Option<Results>> {
+    let Some(shelly_prefs) = &args.shelly else {
+        return Ok(None);
+    };
+    info!("Calculating shelly results");
+    const SHELLY_TRIGGER_FACTOR: f64 = 0.05;
+    let results = calculate_results(
+        args,
+        "shellyPlug.parquet",
+        ShellyPlug::parse_sample,
+        false,
+        SHELLY_TRIGGER_FACTOR,
+        shelly_prefs
+            .msmt_method
+            .predicted_maximum
+            .zip(shelly_prefs.msmt_method.predicted_minimum),
+        shelly_prefs.msmt_method.frame_size,
+        None,
+        "shelly.npy",
+    )?;
+    Ok(Some(results))
+}
+
+pub(crate) fn process_hailo(args: &Args) -> Result<Option<Results>> {
+    let Some(hailo_prefs) = &args.hailo_r_t else {
+        return Ok(None);
+    };
+    info!("Calculating Hailo results");
+    const HAILO_TRIGGER_FACTOR: f64 = 0.05;
+    let results = calculate_results(
+        args,
+        "hailo_rt.parquet",
+        HailoMeasurement::parse_sample,
+        false,
+        HAILO_TRIGGER_FACTOR,
+        hailo_prefs
+            .msmt_method
+            .predicted_maximum
+            .zip(hailo_prefs.msmt_method.predicted_minimum),
+        hailo_prefs.msmt_method.frame_size,
+        None,
+        "hailo_rt.npy",
+    )?;
+    Ok(Some(results))
+}
+
+pub(crate) fn process_oscilloscope(args: &Args) -> Result<Option<Results>> {
+    let Some(osc_prefs) = &args.oscilloscope else {
+        return Ok(None);
+    };
+    info!("Calculating OSC results");
+    const OSC_TRIGGER_FACTOR: f64 = 0.25;
+    let results = calculate_results(
+        args,
+        "usb_osc_data.parquet",
+        |row| PicoMeasurement::parse_sample(row, osc_prefs, &args.environment),
+        args.apply_filter,
+        OSC_TRIGGER_FACTOR,
+        osc_prefs
+            .msmt_method
+            .predicted_maximum
+            .zip(osc_prefs.msmt_method.predicted_minimum),
+        osc_prefs.msmt_method.frame_size,
+        Some(osc_prefs.samplerate),
+        "oscilloscope.npy",
+    )?;
+    Ok(Some(results))
+}
+
+pub(crate) fn process_tekscope(args: &Args) -> Result<Option<Results>> {
+    let Some(tek_prefs) = &args.tekscope else {
+        return Ok(None);
+    };
+    info!("Calculating TekScope results");
+    const TEK_TRIGGER_FACTOR: f64 = 0.25;
+    let results = calculate_results(
+        args,
+        "tek_hsi.parquet",
+        |row| TekMeasurement::parse_sample(row, &args.environment),
+        args.apply_filter,
+        TEK_TRIGGER_FACTOR,
+        tek_prefs
+            .msmt_method
+            .predicted_maximum
+            .zip(tek_prefs.msmt_method.predicted_minimum),
+        tek_prefs.msmt_method.frame_size,
+        Some(tek_prefs.samplerate),
+        "tekScope.npy",
+    )?;
+    Ok(Some(results))
+}
+
+pub(crate) fn process_firmware(args: &Args) -> Result<Option<Results>> {
+    let Some(firmware_prefs) = &args.firmware else {
+        return Ok(None);
+    };
+    info!("Calculating Firmware results");
+    const FIRMWARE_TRIGGER_FACTOR: f64 = 0.25;
+    let results = calculate_results(
+        args,
+        "fast_firmware.parquet",
+        |row| FirmwareMeasruement::parse_sample(row, &args.environment),
+        args.apply_filter,
+        FIRMWARE_TRIGGER_FACTOR,
+        firmware_prefs
+            .msmt_method
+            .predicted_maximum
+            .zip(firmware_prefs.msmt_method.predicted_minimum),
+        firmware_prefs.msmt_method.frame_size,
+        Some(firmware_prefs.samplerate),
+        "firmware_power.npy",
+    )?;
+    Ok(Some(results))
+}
 
 pub(crate) fn calculate_results(
     args: &Args,
@@ -169,7 +310,7 @@ pub(crate) fn cut_data_start_and_end(
         estimated_duration_opt,
     );
     data = data.cut_data(start_idx, stop_idx);
-    (data, max, idle_value)
+    (data, idle_value, max)
 }
 
 /// Finds start and end of measurement, either self-determines idle and max values or uses the
@@ -250,8 +391,7 @@ pub(crate) fn calc_energy(data: &PowerVec, samplerate_opt: Option<f64>, start_en
 /// current -> unit is in mA
 pub(crate) fn estimate_voltage_from_current(current: f64, env: &MeasurementEnvironment) -> f64 {
     let voltage_drop = current / 1000. * env.get_resistance();
-    let voltage = env.get_initial_voltage() - voltage_drop;
-    voltage
+    env.get_initial_voltage() - voltage_drop
     // let curve_pos = current / 100.;
     // curve_pos * (-0.007444582) + 19.062607082705
     /*const VOLTAGE_VALUES: [f64; 36] = [

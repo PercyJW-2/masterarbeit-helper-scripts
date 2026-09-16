@@ -1,6 +1,8 @@
 use std::fmt::Display;
+use std::path::Path;
+use std::{fs, io};
 use serde::Serialize;
-use crate::args::{MeasurementEnvironment, OscilloscopeMsmtType};
+use crate::args::{Args, MeasurementEnvironment, OscilloscopeMsmtType};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct Output {
@@ -10,7 +12,49 @@ pub(crate) struct Output {
     pub(crate) oscilloscope_results: Option<OscilloscopeResults>,
     pub(crate) tek_scope_results: Option<TekScopeResults>,
     pub(crate) firmware_results: Option<Results>,
-    pub(crate) hailo_rt_results: Option<Results>
+    pub(crate) hailo_rt_results: Option<Results>,
+}
+
+impl Output {
+    pub(crate) fn build(
+        args: &Args,
+        jetson_results: Option<Results>,
+        shelly_results: Option<Results>,
+        osc_results: Option<Results>,
+        tekscope_results: Option<Results>,
+        firmware_results: Option<Results>,
+        hailo_results: Option<Results>,
+    ) -> Self {
+        Self {
+            measurement_environment: args.environment.clone(),
+            jetson_results,
+            shelly_results,
+            oscilloscope_results: osc_results.map(|osc_res| {
+                let osc_args = args.oscilloscope.as_ref().expect("Oscilloscope arguments not found");
+                OscilloscopeResults {
+                    results: osc_res,
+                    sample_rate: osc_args.samplerate,
+                    use_voltage: osc_args.use_voltage,
+                    msmt_type: osc_args.measurement_type.clone(),
+                }
+            }),
+            tek_scope_results: tekscope_results.map(|tek_res| {
+                let tek_args = args.tekscope.as_ref().expect("TekScope arguments not found");
+                TekScopeResults {
+                    results: tek_res,
+                    sample_rate: tek_args.samplerate,
+                }
+            }),
+            firmware_results,
+            hailo_rt_results: hailo_results,
+        }
+    }
+
+    pub(crate) fn save_yaml(&self, output_path: &Path) -> io::Result<()> {
+        let serialized_results = serde_saphyr::to_string(self)
+            .map_err(io::Error::other)?;
+        fs::write(output_path.join("results.yaml"), serialized_results)
+    }
 }
 
 impl Display for Output {

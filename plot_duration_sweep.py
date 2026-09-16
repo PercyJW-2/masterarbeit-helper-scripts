@@ -1,7 +1,6 @@
-from typing import Dict
 from enum import Enum
 from matplotlib.axes import Axes
-from matplotlib.figure import Figure
+from matplotlib.figure import Figure, FigureBase
 import matplotlib.pyplot as plt
 import yaml
 import argparse
@@ -13,10 +12,11 @@ type Energy = float
 
 
 class MsmtType(Enum):
-    PICO = 0
-    URECS = 1
-    JETSON = 2
-    SHELLY = 3
+    PICO = "Pico"
+    URECS = "u.RECS"
+    JETSON = "Jetson"
+    SHELLY = "Shelly"
+    HAILO = "Hailo"
 
     def load_power_data(self, path: Path) -> np.ndarray:
         match self:
@@ -28,6 +28,8 @@ class MsmtType(Enum):
                 return np.load((path / "jetson.npy").as_posix())
             case MsmtType.SHELLY:
                 return np.load((path / "shelly.npy").as_posix())
+            case MsmtType.HAILO:
+                return np.load((path / "hailo_rt.npy").as_posix())
 
 
 parser = argparse.ArgumentParser("Plot duration sweep done with measurement suite")
@@ -38,7 +40,7 @@ parser.add_argument("-s", "--skip_plot", action="store_true")
 
 def load_all_data(
     path: Path,
-) -> Dict[int, list[Dict[MsmtType, tuple[Duration, Energy]]]]:
+) -> dict[int, list[dict[MsmtType, tuple[Duration, Energy]]]]:
     data = dict()
     for folder in [x for x in path.iterdir() if x.is_dir()]:
         duration = int(folder.name[:-1])
@@ -58,51 +60,39 @@ def load_all_data(
                     result["firmware_results"]["duration"],
                     result["firmware_results"]["energy"],
                 )
-                run_results[MsmtType.JETSON] = (
-                    result["jetson_results"]["duration"],
-                    result["jetson_results"]["energy"],
-                )
+                if result["jetson_results"] is not None:
+                    run_results[MsmtType.JETSON] = (
+                        result["jetson_results"]["duration"],
+                        result["jetson_results"]["energy"],
+                    )
                 run_results[MsmtType.SHELLY] = (
                     result["shelly_results"]["duration"],
                     result["shelly_results"]["energy"],
                 )
+                if result["hailo_rt_results"] is not None:
+                    run_results[MsmtType.HAILO] = (
+                        result["hailo_rt_results"]["duration"],
+                        result["hailo_rt_results"]["energy"],
+                    )
             msmts.append(run_results)
         data[duration] = msmts
     return data
 
 
 def convert_run_data(
-    run_data: list[Dict[MsmtType, tuple[Duration, Energy]]],
-) -> tuple[
-    tuple[list[Duration], list[Duration], list[Duration], list[Duration]],
-    tuple[list[Energy], list[Energy], list[Energy], list[Energy]],
-]:
-    pico_durations = []
-    urecs_durations = []
-    jetson_durations = []
-    shelly_durations = []
-    pico_energies = []
-    urecs_energies = []
-    jetson_energies = []
-    shelly_energies = []
+    run_data: list[dict[MsmtType, tuple[Duration, Energy]]],
+) -> tuple[dict[MsmtType, np.ndarray], dict[MsmtType, np.ndarray]]:
+    durations: dict[MsmtType, np.ndarray] = {}
+    energies: dict[MsmtType, np.ndarray] = {}
     for run in run_data:
-        pico_durations.append(run[MsmtType.PICO][0])
-        pico_energies.append(run[MsmtType.PICO][1])
-        urecs_durations.append(run[MsmtType.URECS][0])
-        urecs_energies.append(run[MsmtType.URECS][1])
-        jetson_durations.append(run[MsmtType.JETSON][0])
-        jetson_energies.append(run[MsmtType.JETSON][1])
-        shelly_durations.append(run[MsmtType.SHELLY][0])
-        shelly_energies.append(run[MsmtType.SHELLY][1])
-    return (
-        (pico_durations, urecs_durations, jetson_durations, shelly_durations),
-        (
-            pico_energies,
-            urecs_energies,
-            jetson_energies,
-            shelly_energies,
-        ),
-    )
+        for key, value in run.items():
+            if key not in durations:
+                durations[key] = np.array([value[0]])
+                energies[key] = np.array([value[1]])
+            else:
+                durations[key] = np.append(durations[key], value[0])
+                energies[key] = np.append(energies[key], value[1])
+    return (durations, energies)
 
 
 if __name__ == "__main__":
@@ -114,8 +104,10 @@ if __name__ == "__main__":
     durations = list(data.keys())
     durations.sort()
 
-    ret: tuple[Figure, np.ndarray] = plt.subplots(2, len(durations) // 2, sharey=True)
-    fig, axs = ret
+    returned: tuple[Figure, np.ndarray] = plt.subplots(
+        2, len(durations) // 2, sharey=True
+    )
+    fig, axs = returned
     axs_l: list[Axes] = list(axs.ravel())
 
     fig.set_size_inches((10, 5))
@@ -129,19 +121,25 @@ if __name__ == "__main__":
         duration_data = data[duration]
         transposed_data = convert_run_data(duration_data)
 
-        duration_data = np.array(transposed_data[0])
-        energy_data = np.array(transposed_data[1])
-        joule_per_second_data = energy_data / duration_data
-        median_jps = np.median(joule_per_second_data, axis=1)
+        duration_data = transposed_data[0]
+        energy_data = transposed_data[1]
+        joule_per_second_data: dict[MsmtType, np.ndarray] = {}
+        for key, duration_key in duration_data.items():
+            joule_per_second_data[key] = np.array(duration_key) / np.array(
+                energy_data[key]
+            )
+        median_jps = np.median(list(joule_per_second_data.values()), axis=1)
         median_joule_per_second_values.append(median_jps)
 
-        median_energy = np.median(energy_data, axis=1)
+        median_energy = np.median(list(energy_data.values()), axis=1)
         median_energy_values.append(median_energy)
         print(median_energy)
 
-        ax.boxplot(joule_per_second_data.T, showfliers=False)
+        ax.boxplot(list(joule_per_second_data.values()), showfliers=False)
         ax.set_title(f"{duration}s")
-        ax.set_xticks([1, 2, 3, 4], labels=["Picoscope", "u.RECS", "Jetson", "Shelly"])
+        ax.set_xticks(
+            [1, 2, 3, 4], labels=[key.value for key in joule_per_second_data.keys()]
+        )
         ax.tick_params("x", rotation=90)
         ax.yaxis.grid(True)
     axs_l[0].set_ylabel("Energy per Second (J/s)", fontsize=y_label_font_size)
@@ -187,7 +185,9 @@ if __name__ == "__main__":
 
         ax.bar(np.arange(1, 4), perc_diffs, fill=False, hatch="//")
         ax.set_title(f"{duration}s")
-        ax.set_xticks([1, 2, 3], labels=["u.RECS", "Jetson", "Shelly"])
+        names = set(duration_data.keys())
+        names.remove(MsmtType.PICO)
+        ax.set_xticks([1, 2, 3], labels=[name.value for name in names])
         ax.tick_params("x", rotation=90)
         ax.yaxis.grid(True)
     axs_l[0].set_ylabel("Percent (%)", fontsize=y_label_font_size)

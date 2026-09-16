@@ -1,6 +1,14 @@
 use std::collections::VecDeque;
+use std::io;
 use log::info;
+use parquet::record::Row;
+use crate::args::{MeasurementEnvironment, Oscilloscope};
+use crate::data_actions::estimate_voltage_from_current;
+use crate::data_reading::{
+    field_to_f32, field_to_f64, field_to_u16, field_to_u32, field_to_u64,
+};
 
+#[allow(dead_code)]
 pub(crate) struct JetsonMeasurement {
     /// Unit in microseconds
     pub(crate) measurement_timestamp: u64,
@@ -8,6 +16,23 @@ pub(crate) struct JetsonMeasurement {
     pub(crate) current: u32,
     /// Unit in millivolts
     pub(crate) voltage: u32,
+}
+
+impl JetsonMeasurement {
+    pub(crate) fn parse_sample(row: Row) -> io::Result<PowerSample> {
+        let cols = row.into_columns();
+        let measurement_timestamp = field_to_u64(&cols[0].1)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Jetson timestamp"))?;
+        let current = field_to_u32(&cols[1].1)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Jetson current"))?;
+        let voltage = field_to_u32(&cols[2].1)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Jetson voltage"))?;
+        let current_power = (current as f64 / 1000.) * (voltage as f64 / 1000.);
+        Ok(PowerSample::Variable(
+            measurement_timestamp as f64 / 1_000_000.,
+            current_power,
+        ))
+    }
 }
 
 #[allow(dead_code)]
@@ -22,11 +47,63 @@ pub(crate) struct ShellyPlug {
     pub(crate) power: f64,
 }
 
+impl ShellyPlug {
+    pub(crate) fn parse_sample(row: Row) -> io::Result<PowerSample> {
+        let cols = row.into_columns();
+        let measurement_timestamp = field_to_u64(&cols[0].1)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Shelly timestamp"))?;
+        let raw_power = field_to_f32(&cols[3].1)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Shelly power"))? as f64;
+        let mut power = raw_power - 13.3702620243055;
+        power *= 0.754773327011166;
+        Ok(PowerSample::Variable(
+            measurement_timestamp as f64 / 1_000_000.,
+            power,
+        ))
+    }
+}
+
+#[allow(dead_code)]
+pub(crate) struct HailoMeasurement;
+
+impl HailoMeasurement {
+    pub(crate) fn parse_sample(row: Row) -> io::Result<PowerSample> {
+        let cols = row.into_columns();
+        let hailo_time = field_to_u64(&cols[0].1)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Hailo timestamp"))?;
+        let hailo_power = field_to_f32(&cols[1].1)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Hailo power"))?;
+        Ok(PowerSample::Variable(
+            hailo_time as f64 / 1_000_000.,
+            hailo_power as f64,
+        ))
+    }
+}
+
+#[allow(dead_code)]
 pub(crate) struct FirmwareMeasruement {
     #[allow(dead_code)]
     pub(crate) measurement_index: u16,
     /// Unit in amps
     pub(crate) current: u16,
+}
+
+impl FirmwareMeasruement {
+    pub(crate) fn parse_sample(
+        row: Row,
+        env: &MeasurementEnvironment,
+    ) -> io::Result<PowerSample> {
+        let cols = row.into_columns();
+        let _idx = field_to_u16(&cols[0].1)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Firmware index"))?;
+        let current_raw = field_to_u16(&cols[1].1)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Firmware current"))?;
+        let current_current = ((current_raw as f64 / 1000.) + 0.00320761237010142) * 1.00303845029306;
+        let current_power =
+            current_current * estimate_voltage_from_current(current_current * 1000., env);
+        let corrected_firmware_power = env.get_scale_factor() * current_power;
+        Ok(PowerSample::Constant(corrected_firmware_power))
+    }
 }
 
 #[allow(dead_code)]
@@ -37,9 +114,46 @@ pub(crate) struct PicoMeasurement {
     pub(crate) current: f64,
 }
 
+impl PicoMeasurement {
+    pub(crate) fn parse_sample(
+        row: Row,
+        osc_prefs: &Oscilloscope,
+        env: &MeasurementEnvironment,
+    ) -> io::Result<PowerSample> {
+        let cols = row.into_columns();
+        let raw_voltage = field_to_f64(&cols[0].1)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Pico voltage"))?;
+        let raw_current = field_to_f64(&cols[1].1)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Pico current"))?;
+        let current = osc_prefs.measurement_type.calibrate_current(raw_current);
+        let voltage = if osc_prefs.use_voltage {
+            raw_voltage
+        } else {
+            estimate_voltage_from_current(current * 1000., env)
+        };
+        let current_power = voltage * current;
+        Ok(PowerSample::Constant(current_power))
+    }
+}
+
+#[allow(dead_code)]
 pub(crate) struct TekMeasurement {
     /// Unit in amps
     pub(crate) current: f64,
+}
+
+impl TekMeasurement {
+    pub(crate) fn parse_sample(
+        row: Row,
+        env: &MeasurementEnvironment,
+    ) -> io::Result<PowerSample> {
+        let cols = row.into_columns();
+        let current = field_to_f64(&cols[0].1)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Tek current"))?;
+        let voltage = estimate_voltage_from_current(current / 1000., env);
+        let current_power = voltage * current;
+        Ok(PowerSample::Constant(current_power))
+    }
 }
 
 pub(crate) type Power = f64;

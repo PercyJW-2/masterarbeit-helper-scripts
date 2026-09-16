@@ -90,6 +90,16 @@ pub(crate) enum OscilloscopeMsmtType {
     INA225,
 }
 
+impl OscilloscopeMsmtType {
+    pub(crate) fn calibrate_current(&self, raw_current: f64) -> f64 {
+        match self {
+            Self::UCurrent => (raw_current + 0.003326916) * 0.998687605682019,
+            Self::CurrentRanger => (raw_current + 0.00226039126953639) * 0.991674394344991,
+            Self::INA225 => (raw_current + 0.00113234708902438) * 1.99000905673597,
+        }
+    }
+}
+
 impl FromStr for OscilloscopeMsmtType {
     type Err = String;
 
