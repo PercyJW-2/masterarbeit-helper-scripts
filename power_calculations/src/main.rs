@@ -8,7 +8,7 @@ mod plotting;
 use crate::args::args;
 use crate::data_actions::{
     process_firmware, process_hailo, process_jetson, process_oscilloscope, process_shelly,
-    process_tekscope,
+    process_tekscope, process_nvgpu
 };
 use crate::output_types::Output;
 use log::{error, info};
@@ -26,6 +26,7 @@ fn main() -> io::Result<()> {
     let jetson_results = process_jetson(&args)?;
     let shelly_results = process_shelly(&args)?;
     let hailo_results = process_hailo(&args)?;
+    let nvgpu_results = process_nvgpu(&args)?;
     let osc_results = process_oscilloscope(&args)?;
     let tekscope_results = process_tekscope(&args)?;
     let firmware_results = process_firmware(&args)?;
@@ -38,6 +39,7 @@ fn main() -> io::Result<()> {
         tekscope_results.clone(),
         firmware_results.clone(),
         hailo_results.clone(),
+        nvgpu_results.clone(),
     );
 
     info!("{results}");

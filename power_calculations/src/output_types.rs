@@ -13,6 +13,7 @@ pub(crate) struct Output {
     pub(crate) tek_scope_results: Option<TekScopeResults>,
     pub(crate) firmware_results: Option<Results>,
     pub(crate) hailo_rt_results: Option<Results>,
+    pub(crate) nv_gpu_results: Option<Results>,
 }
 
 impl Output {
@@ -23,7 +24,8 @@ impl Output {
         osc_results: Option<Results>,
         tekscope_results: Option<Results>,
         firmware_results: Option<Results>,
-        hailo_results: Option<Results>,
+        hailo_rt_results: Option<Results>,
+        nv_gpu_results: Option<Results>,
     ) -> Self {
         Self {
             measurement_environment: args.environment.clone(),
@@ -46,7 +48,8 @@ impl Output {
                 }
             }),
             firmware_results,
-            hailo_rt_results: hailo_results,
+            hailo_rt_results,
+            nv_gpu_results,
         }
     }
 

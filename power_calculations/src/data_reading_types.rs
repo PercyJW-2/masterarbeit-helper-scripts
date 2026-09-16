@@ -63,7 +63,6 @@ impl ShellyPlug {
     }
 }
 
-#[allow(dead_code)]
 pub(crate) struct HailoMeasurement;
 
 impl HailoMeasurement {
@@ -81,14 +80,35 @@ impl HailoMeasurement {
 }
 
 #[allow(dead_code)]
-pub(crate) struct FirmwareMeasruement {
-    #[allow(dead_code)]
+pub(crate) struct NvGpuMeasurement {
+    /// Timestamp in seconds
+    pub(crate) measurement_timestamp: f64,
+    /// Unit in milliwatts
+    pub(crate) power: u32,
+}
+
+impl NvGpuMeasurement {
+    pub(crate) fn parse_sample(row: Row) -> io::Result<PowerSample> {
+        let cols = row.into_columns();
+        let nv_gpu_time = field_to_f64(&cols[0].1)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Nvidia GPU timestamp"))?;
+        let nv_gpu_power = field_to_u32(&cols[1].1)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Nvidia GPU power"))?;
+        Ok(PowerSample::Variable(
+            nv_gpu_time,
+            nv_gpu_power as f64 / 1000.,
+        ))
+    }
+}
+
+#[allow(dead_code)]
+pub(crate) struct FirmwareMeasurement {
     pub(crate) measurement_index: u16,
     /// Unit in amps
     pub(crate) current: u16,
 }
 
-impl FirmwareMeasruement {
+impl FirmwareMeasurement {
     pub(crate) fn parse_sample(
         row: Row,
         env: &MeasurementEnvironment,

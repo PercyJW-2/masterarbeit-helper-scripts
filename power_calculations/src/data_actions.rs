@@ -1,7 +1,4 @@
-use crate::data_reading_types::{
-    FirmwareMeasruement, HailoMeasurement, JetsonMeasurement, PicoMeasurement, PowerSample,
-    PowerVec, ShellyPlug, TekMeasurement, WindowEnergyIter,
-};
+use crate::data_reading_types::{FirmwareMeasurement, HailoMeasurement, JetsonMeasurement, NvGpuMeasurement, PicoMeasurement, PowerSample, PowerVec, ShellyPlug, TekMeasurement, WindowEnergyIter};
 use biquad::{Biquad, Coefficients, DirectForm1, Q_BUTTERWORTH_F64, ToHertz};
 use matplotlib::pyplot as plt;
 use npyz::WriterBuilder;
@@ -85,6 +82,29 @@ pub(crate) fn process_hailo(args: &Args) -> Result<Option<Results>> {
     Ok(Some(results))
 }
 
+pub(crate) fn process_nvgpu(args: &Args) -> Result<Option<Results>> {
+    let Some(nvgpu_prefs) = &args.nv_gpu else {
+        return Ok(None);
+    };
+    info!("Calculating Nvidia GPU results");
+    const NVGPU_TRIGGER_FACTOR: f64 = 0.05; //TODO think about a better trigger factor
+    let results = calculate_results(
+        args,
+        "nvidia_gpu.parquet",
+        NvGpuMeasurement::parse_sample,
+        false,
+        NVGPU_TRIGGER_FACTOR,
+        nvgpu_prefs
+            .msmt_method
+            .predicted_maximum
+            .zip(nvgpu_prefs.msmt_method.predicted_minimum),
+        nvgpu_prefs.msmt_method.frame_size,
+        None,
+        "nvidia_gpu.npy"
+    )?;
+    Ok(Some(results))
+}
+
 pub(crate) fn process_oscilloscope(args: &Args) -> Result<Option<Results>> {
     let Some(osc_prefs) = &args.oscilloscope else {
         return Ok(None);
@@ -140,7 +160,7 @@ pub(crate) fn process_firmware(args: &Args) -> Result<Option<Results>> {
     let results = calculate_results(
         args,
         "fast_firmware.parquet",
-        |row| FirmwareMeasruement::parse_sample(row, &args.environment),
+        |row| FirmwareMeasurement::parse_sample(row, &args.environment),
         args.apply_filter,
         FIRMWARE_TRIGGER_FACTOR,
         firmware_prefs

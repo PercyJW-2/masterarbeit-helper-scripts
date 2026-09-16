@@ -9,6 +9,7 @@ pub(crate) enum MeasurementEnvironment {
     Static,
     Jetson,
     M2,
+    NvGpu,
 }
 
 impl MeasurementEnvironment {
@@ -17,6 +18,7 @@ impl MeasurementEnvironment {
             Self::Static => 1.,
             Self::Jetson => 1.0 - 0.03127795823408493, //TODO check if value is valid
             Self::M2 => 1.,
+            Self::NvGpu => todo!(),
         }
     }
 
@@ -26,13 +28,15 @@ impl MeasurementEnvironment {
             Self::Jetson => 0.2934,
             // M2 without INA Self::M2 => 0.0797,
             Self::M2 => 0.136,
+            Self::NvGpu => todo!(),
         }
     }
 
     pub(crate) const fn get_initial_voltage(&self) -> f64 {
         match self {
             Self::Static | Self::Jetson => 18.95,
-            Self::M2 => 3.313
+            Self::M2 => 3.313,
+            Self::NvGpu => todo!(),
         }
     }
 }
@@ -44,6 +48,7 @@ impl FromStr for MeasurementEnvironment {
             "static" => Ok(MeasurementEnvironment::Static),
             "jetson" => Ok(MeasurementEnvironment::Jetson),
             "m.2" => Ok(MeasurementEnvironment::M2),
+            "nvgpu" => Ok(MeasurementEnvironment::NvGpu),
             _ => Err(format!("String {s} is invalid"))
         }
     }
@@ -55,6 +60,7 @@ impl Display for MeasurementEnvironment {
             Self::Static => write!(f, "Static"),
             Self::Jetson => write!(f, "Jetson"),
             Self::M2 => write!(f, "M_2"),
+            Self::NvGpu => write!(f, "NVIDIA GPU"),
         }
     }
 }
@@ -176,6 +182,13 @@ pub(crate) struct HailoRT {
     pub(crate) msmt_method: MsmtMethod
 }
 
+#[derive(Bpaf, Debug, Clone)]
+#[bpaf(command("nv_gpu"), adjacent)]
+pub(crate) struct NvGpu {
+    #[bpaf(external)]
+    pub(crate) msmt_method: MsmtMethod
+}
+
 #[derive(Debug, Clone, Bpaf)]
 #[bpaf(options, version)]
 pub(crate) struct Args {
@@ -226,5 +239,8 @@ pub(crate) struct Args {
     pub(crate) jetson: Option<Jetson>,
     /// Settings for hailort measurements
     #[bpaf(external, optional)]
-    pub(crate) hailo_r_t: Option<HailoRT>
+    pub(crate) hailo_r_t: Option<HailoRT>,
+    /// Settings for nvidia-gpu measurements
+    #[bpaf(external, optional)]
+    pub(crate) nv_gpu: Option<NvGpu>,
 }
