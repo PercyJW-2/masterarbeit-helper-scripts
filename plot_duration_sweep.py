@@ -125,11 +125,12 @@ if __name__ == "__main__":
         energy_data = transposed_data[1]
         joule_per_second_data: dict[MsmtType, np.ndarray] = {}
         for key, duration_key in duration_data.items():
-            joule_per_second_data[key] = np.array(duration_key) / np.array(
-                energy_data[key]
+            joule_per_second_data[key] = np.array(energy_data[key]) / np.array(
+                duration_key
             )
         median_jps = np.median(list(joule_per_second_data.values()), axis=1)
         median_joule_per_second_values.append(median_jps)
+        print(median_jps)
 
         median_energy = np.median(list(energy_data.values()), axis=1)
         median_energy_values.append(median_energy)
