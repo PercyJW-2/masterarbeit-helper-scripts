@@ -45,6 +45,8 @@ def start_run(
         data_collection_command += f" usb-oscilloscope --sample-rate={pico_samplerate_override} --measurement-type={args['picoscope_measurement_type']} --msmt-environment={args['measurement_environment']}"
     if args["tek_scope"]:
         data_collection_command += f" oscilloscope --address{args['tek_scope_address']}"
+    if args["nv_gpu"]:
+        data_collection_command += f" n-v-g-p-u --address{args['nv_gpu_address']} --data-port=8000 --control-port=8001"
     logger.info(data_collection_command)
     power_calculation_command = f"power_calculations -m={storage_path.as_posix()} -c -r --estimated-duration={int(duration_override + 2)} --environment={args['measurement_environment']}"
     if args["apply_filter"]:
@@ -69,6 +71,8 @@ def start_run(
         power_calculation_methods += f" jetson{power_cut_section_command}"
     if args["hailo"]:
         power_calculation_methods += f" hailo_rt{power_cut_section_command}"
+    if args["nv_gpu"]:
+        power_calculation_methods += f" nv_gpu{power_cut_section_command}"
 
     def execute_run(run_number: int, run_path) -> tuple[bool, bool]:
         if not run_path.exists():
@@ -229,6 +233,10 @@ def main(
         str,
         typer.Option(help="Network Address of the Jetson"),
     ] = "10.42.0.44",
+    nv_gpu: Annotated[bool, typer.Option(help="Measure nvidia gpu")] = False,
+    nv_gpu_address: Annotated[
+        str, typer.Option(help="Network Address of the nvidia_gpu host")
+    ] = "10.42.0.210",
     skip_power_calculation: Annotated[
         bool,
         typer.Option(
