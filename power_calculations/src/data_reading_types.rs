@@ -2,11 +2,15 @@ use std::collections::VecDeque;
 use std::io;
 use log::info;
 use parquet::record::Row;
-use crate::args::{MeasurementEnvironment, Oscilloscope};
+use crate::args::{MeasurementEnvironment, Oscilloscope, OscilloscopeMsmtType};
 use crate::data_actions::estimate_voltage_from_current;
 use crate::data_reading::{
     field_to_f32, field_to_f64, field_to_u16, field_to_u32, field_to_u64,
 };
+
+type Amplification = f64;
+type StaticFactor = f64;
+type LinearFactor = f64;
 
 #[allow(dead_code)]
 pub(crate) struct JetsonMeasurement {
@@ -48,18 +52,26 @@ pub(crate) struct ShellyPlug {
 }
 
 impl ShellyPlug {
-    pub(crate) fn parse_sample(row: Row) -> io::Result<PowerSample> {
+    pub(crate) fn parse_sample(row: Row, env: &MeasurementEnvironment) -> io::Result<PowerSample> {
         let cols = row.into_columns();
         let measurement_timestamp = field_to_u64(&cols[0].1)
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Shelly timestamp"))?;
         let raw_power = field_to_f32(&cols[3].1)
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Shelly power"))? as f64;
-        let mut power = raw_power - 13.3702620243055;
-        power *= 0.754773327011166;
+        let power = Self::calibrate_power(env, raw_power);
         Ok(PowerSample::Variable(
             measurement_timestamp as f64 / 1_000_000.,
             power,
         ))
+    }
+
+    const fn calibrate_power(env: &MeasurementEnvironment, raw_power: f64) -> f64 {
+        match env {
+            MeasurementEnvironment::Static => todo!(), // technically this is power-supply-dependent, but currently there is no way to differentiate between powersupplies
+            MeasurementEnvironment::Jetson => todo!(), // here we assume that the jetson is powered by the benchtop power supply, though differentiation between urecs and benchtop supply would be nice
+            MeasurementEnvironment::M2 => (raw_power - 13.3702620243055) * 0.754773327011166,
+            MeasurementEnvironment::NvGpu => (raw_power - 31.4599990844727) * 1.00373879106627,
+        }
     }
 }
 
@@ -118,11 +130,21 @@ impl FirmwareMeasurement {
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Firmware index"))?;
         let current_raw = field_to_u16(&cols[1].1)
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Firmware current"))?;
-        let current_current = ((current_raw as f64 / 1000.) + 0.00320761237010142) * 1.00303845029306;
+        let (stat, lin) = Self::calibration_factors(env);
+        let current_current = ((current_raw as f64 / 1000.) + stat) * lin;
         let current_power =
             current_current * estimate_voltage_from_current(current_current * 1000., env);
         let corrected_firmware_power = env.get_scale_factor() * current_power;
         Ok(PowerSample::Constant(corrected_firmware_power))
+    }
+
+    const fn calibration_factors(env: &MeasurementEnvironment) -> (StaticFactor, LinearFactor) {
+        match env {
+            MeasurementEnvironment::Static => todo!(),
+            MeasurementEnvironment::Jetson => todo!(),
+            MeasurementEnvironment::M2 => (0.00320761237010142, 1.00303845029306),
+            MeasurementEnvironment::NvGpu => todo!(),
+        }
     }
 }
 
@@ -145,7 +167,7 @@ impl PicoMeasurement {
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Pico voltage"))?;
         let raw_current = field_to_f64(&cols[1].1)
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Could not parse Pico current"))?;
-        let current = osc_prefs.measurement_type.calibrate_current(raw_current);
+        let current = Self::calibrate_current(&osc_prefs.measurement_type, env, raw_current);
         let voltage = if osc_prefs.use_voltage {
             raw_voltage
         } else {
@@ -153,6 +175,19 @@ impl PicoMeasurement {
         };
         let current_power = voltage * current;
         Ok(PowerSample::Constant(current_power))
+    }
+
+    const fn calibrate_current(msmt_type: &OscilloscopeMsmtType, msmt_env: &MeasurementEnvironment, raw_current: f64) -> f64 {
+        // technically you could remove the ucurrent and current ranger handling completely, as it is not used anymore
+        // calibration data from previous commits would be a nice addition, but is not necessary for now
+        match (msmt_type, msmt_env) {
+            (OscilloscopeMsmtType::UCurrent, _) => (raw_current + 0.003326916) * 0.998687605682019,
+            (OscilloscopeMsmtType::CurrentRanger, _) => (raw_current + 0.00226039126953639) * 0.991674394344991,
+            (OscilloscopeMsmtType::INA225, MeasurementEnvironment::M2) => (raw_current + 0.00113234708902438) * 1.99000905673597,
+            (OscilloscopeMsmtType::INA225, MeasurementEnvironment::Static) => todo!(),
+            (OscilloscopeMsmtType::INA225, MeasurementEnvironment::Jetson) => todo!(),
+            (OscilloscopeMsmtType::INA225, MeasurementEnvironment::NvGpu) => (raw_current + 0.002755526) * 38.45601442
+        }
     }
 }
 

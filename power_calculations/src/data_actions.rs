@@ -45,7 +45,7 @@ pub(crate) fn process_shelly(args: &Args) -> Result<Option<Results>> {
     let results = calculate_results(
         args,
         "shellyPlug.parquet",
-        ShellyPlug::parse_sample,
+        |sample| ShellyPlug::parse_sample(sample, &args.environment),
         false,
         SHELLY_TRIGGER_FACTOR,
         shelly_prefs

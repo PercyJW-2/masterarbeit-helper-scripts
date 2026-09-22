@@ -18,7 +18,7 @@ impl MeasurementEnvironment {
             Self::Static => 1.,
             Self::Jetson => 1.0 - 0.03127795823408493, //TODO check if value is valid
             Self::M2 => 1.,
-            Self::NvGpu => todo!(),
+            Self::NvGpu => 1.,
         }
     }
 
@@ -28,7 +28,7 @@ impl MeasurementEnvironment {
             Self::Jetson => 0.2934,
             // M2 without INA Self::M2 => 0.0797,
             Self::M2 => 0.136,
-            Self::NvGpu => todo!(),
+            Self::NvGpu => 0.01371,
         }
     }
 
@@ -36,7 +36,7 @@ impl MeasurementEnvironment {
         match self {
             Self::Static | Self::Jetson => 18.95,
             Self::M2 => 3.313,
-            Self::NvGpu => todo!(),
+            Self::NvGpu => 12.207,
         }
     }
 }
@@ -94,16 +94,6 @@ pub(crate) enum OscilloscopeMsmtType {
     UCurrent,
     CurrentRanger,
     INA225,
-}
-
-impl OscilloscopeMsmtType {
-    pub(crate) fn calibrate_current(&self, raw_current: f64) -> f64 {
-        match self {
-            Self::UCurrent => (raw_current + 0.003326916) * 0.998687605682019,
-            Self::CurrentRanger => (raw_current + 0.00226039126953639) * 0.991674394344991,
-            Self::INA225 => (raw_current + 0.00113234708902438) * 1.99000905673597,
-        }
-    }
 }
 
 impl FromStr for OscilloscopeMsmtType {
