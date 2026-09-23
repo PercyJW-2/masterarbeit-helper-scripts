@@ -104,6 +104,7 @@ impl FromStr for OscilloscopeMsmtType {
             "ucurrent" => Ok(OscilloscopeMsmtType::UCurrent),
             "currentranger" => Ok(OscilloscopeMsmtType::CurrentRanger),
             "ina225" => Ok(OscilloscopeMsmtType::INA225),
+            "ina225nvgpu" => Ok(OscilloscopeMsmtType::INA225),
             _ => Err(format!("String {s} is invalid")),
         }
     }
