@@ -48,7 +48,7 @@ def start_run(
     if args["nv_gpu"]:
         data_collection_command += f" n-v-g-p-u --address{args['nv_gpu_address']} --data-port=8000 --control-port=8001"
     logger.info(data_collection_command)
-    power_calculation_command = f"power_calculations -m={storage_path.as_posix()} -c -r --estimated-duration={int(duration_override + 2)} --environment={args['measurement_environment']}"
+    power_calculation_command = f"power_calculations --measurement-location={storage_path.as_posix()} -c -r --estimated-duration={int(duration_override + 2)} --environment={args['measurement_environment']}"
     if args["apply_filter"]:
         power_calculation_command += " -f"
     power_calculation_methods = ""
@@ -58,7 +58,7 @@ def start_run(
     if args["fast_firmware"]:
         power_calculation_methods += f" firmware -s={args['fast_firmware_samplerate']}{power_cut_section_command}"
     if args["picoscope"]:
-        power_calculation_methods += f" oscilloscope -s={pico_samplerate_override} -m={args['picoscope_measurement_type']}{power_cut_section_command}"
+        power_calculation_methods += f" oscilloscope -s={pico_samplerate_override} --measurement-type={args['picoscope_measurement_type']}{power_cut_section_command}"
         if args["picoscope_use_measured_voltages"]:
             power_calculation_methods += " -v"
     if args["tek_scope"]:
@@ -198,7 +198,7 @@ def main(
     picoscope_measurement_type: Annotated[
         str,
         typer.Option(
-            help="measurement type connected to picoscope, options are UCurrent, CurrentRanger and INA225."
+            help="measurement type connected to picoscope, options are UCurrent, CurrentRanger, INA225NVGPU and INA225."
         ),
     ] = "INA225",
     picoscope_samplerate: Annotated[
@@ -290,7 +290,7 @@ def main(
     if duration is None and not duration_sweep:
         logger.info("Starting Dry-Run to determine duration")
         start = time.time()
-        subprocess.run(command, shell=True, check=True)
+        subprocess.run(command, shell=True, check=False)
         end = time.time()
         duration = end - start
 
